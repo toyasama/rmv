@@ -1,0 +1,25 @@
+{
+    "name": "RMV Dev Environment",
+    "build": {
+        "dockerfile": "../docker/Dockerfile",
+        "context": ".."
+    },
+    "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true
+    },
+    "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-azuretools.vscode-docker"
+    ],
+    "postCreateCommand": "colcon build && . install/setup.bash",
+    "remoteUser": "devuser",
+    "workspaceFolder": "/home/devuser/workspace",
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/home/devuser/workspace,type=bind,consistency=cached"
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    }
+}
