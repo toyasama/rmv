@@ -15,7 +15,7 @@ setup(
     zip_safe=True,
     maintainer='devuser',
     maintainer_email='emerytognama@gmail.com',
-    description='TODO: Package description',
+    description='This package regroups and manage all rmv process',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={

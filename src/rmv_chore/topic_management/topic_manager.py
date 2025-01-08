@@ -14,10 +14,10 @@ class TopicManager:
         self.node = node
         self.subscription_manager = SubscriptionManager(node)
         self.timer_logger = TimerLogger(node, True)
-        self.node.create_timer(1.0, self.findMarkersTopics)  # Timer to call findMarkersTopics every 1 second
+        self.node.create_timer(0.25, self.findMarkersTopicsCallBack) 
         self.node.get_logger().info("TopicManager created successfully")
 
-    def findMarkersTopics(self) -> None:
+    def findMarkersTopicsCallBack(self) -> None:
         """
         Discover topics related to markers, subscribe to new ones, and remove obsolete subscriptions.
         """
