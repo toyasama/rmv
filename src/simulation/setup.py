@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'rmv_chore'
+package_name = 'simulation'
 
 setup(
     name=package_name,
@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rmv_chore = rmv_chore.main:main',
+            "simulation = simulation.simulation:main",
         ],
     },
 )
