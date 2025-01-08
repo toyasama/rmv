@@ -1,18 +1,26 @@
 {
-    "name": "RMV Dev Environment",
+    "name": "RMV Chore",
     "build": {
         "dockerfile": "../docker/Dockerfile",
-        "context": ".."
+        "context": "..",
+        "args": {},
+        "options": [
+            "--tag=rmv_chore:latest"
+        ]
     },
-    "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "editor.formatOnSave": true
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "editor.formatOnSave": true
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-vscode.cpptools",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
     },
-    "extensions": [
-        "ms-python.python",
-        "ms-vscode.cpptools",
-        "ms-azuretools.vscode-docker"
-    ],
     "postCreateCommand": "colcon build && . install/setup.bash",
     "remoteUser": "devuser",
     "workspaceFolder": "/home/devuser/workspace",
@@ -21,5 +29,8 @@
     ],
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-    }
+    },
+    "runArgs": [
+        "--name=rmv_chore_dev_container"
+    ]
 }
