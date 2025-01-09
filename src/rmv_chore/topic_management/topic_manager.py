@@ -12,8 +12,9 @@ class TopicManager:
             node (Node): The node object.
         """
         self.node = node
+        self.markers_list: List[Type[Marker|MarkerArray]] = []
         self.subscription_manager = SubscriptionManager(node)
-        self.timer_logger = TimerLogger(node, True)
+        self.timer_logger = TimerLogger(node)
         self.node.create_timer(0.25, self.findMarkersTopicsCallBack) 
         self.node.get_logger().info("TopicManager created successfully")
 
@@ -99,4 +100,20 @@ class TopicManager:
         Args:
             msg (Marker | MarkerArray): The received message.
         """
-        self.node.get_logger().info(f"Received message of type {type(msg).__name__}")
+        self.markers_list.append(msg)
+        
+    def getMarkersList(self) -> List[Type[Marker|MarkerArray]]:
+        """
+        Get the list of markers.
+        Returns:
+            list: The list of markers.
+        """
+        return self.markers_list
+    
+        
+    def cleanMarkersList(self) -> None:
+        """
+        Clean the list of markers.
+        """
+        self.markers_list = []
+        
