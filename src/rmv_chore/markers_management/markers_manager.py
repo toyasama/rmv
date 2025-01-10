@@ -24,8 +24,18 @@ class MarkersManager:
         if self._replaceMarkerIfInList(new_marker):
             return
         self.markers_list.append(new_marker)
+        
+    def processNewMarkers(self, markers:list[Marker])->None:
+        """
+        Process a list of new markers.
+        Args:
+            markers (list[Marker]): The list of markers to be processed.
+        """
+        for marker in markers:
+            self.addMarker(marker)
+        self.deleteExpiredMarkers()
 
-    def _replaceMarkerIfInList(self, new_marker:Marker)->bool:
+    def _replaceMarkerIfInList(self, new_marker:MarkerRmv)->bool:
         """
         Replace a marker in the markers list if it is already in the list.
 
@@ -36,7 +46,7 @@ class MarkersManager:
         """
         for marker in self.markers_list:
             if marker.equals(new_marker):
-                marker = MarkerRmv(new_marker)
+                marker = new_marker
                 return True
         return False
         

@@ -1,7 +1,7 @@
 from visualization_msgs.msg import Marker
 from enum import Enum
 from builtin_interfaces.msg import Time
-
+from geometry_msgs.msg import Pose
 class MarkerTypes(Enum):
     """
     Enum for marker types.
@@ -43,6 +43,33 @@ class MarkerRmv:
             tuple: A tuple containing the namespace and ID.
         """
         return self.identifier
+    
+    def getTfFrame(self) -> str:
+        """
+        Get the TF frame of the marker.
+
+        Returns:
+            str: The TF frame of the marker.
+        """
+        return self.header.frame_id
+    
+    def setFrameId(self, frame_id: str) -> None:
+        """
+        Set the TF frame of the marker.
+
+        Args:
+            frame_id (str): The new TF frame.
+        """
+        self.header.frame_id = frame_id
+        
+    def setPose(self, pose: Pose) -> None:
+        """
+        Set the pose of the marker.
+
+        Args:
+            pose (Pose): The new pose.
+        """
+        self.pose = pose
 
     def equals(self, other_marker: 'MarkerRmv') -> bool:
         """
@@ -66,7 +93,7 @@ class MarkerRmv:
         Returns:
             bool: True if the marker is expired, False otherwise.
         """
-        return current_time.sec >= self.lifetime.sec + self.header.stamp.sec
+        return current_time.sec + current_time.nanosec * 1e-9 > self.lifetime.sec + self.lifetime.nanosec * 1e-9 + self.header.stamp.sec + self.header.stamp.nanosec * 1e-9
     
     def getFrameId(self) -> str:
         """

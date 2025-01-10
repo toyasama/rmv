@@ -5,7 +5,7 @@ from utils.timer_log import TimerLogger
 from topic_management.subscription_manager import SubscriptionManager
 
 class TopicManager:
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, process_period:float) -> None:
         """
         Constructor for the TopicManager class.
         Args:
@@ -14,8 +14,8 @@ class TopicManager:
         self.node = node
         self.markers_list: List[Type[Marker|MarkerArray]] = []
         self.subscription_manager = SubscriptionManager(node)
-        self.timer_logger = TimerLogger(node)
-        self.node.create_timer(0.25, self.findMarkersTopicsCallBack) 
+        self.timer_logger = TimerLogger(node, 5.0)
+        self.node.create_timer(process_period, self.findMarkersTopicsCallBack) 
         self.node.get_logger().info("TopicManager created successfully")
 
     def findMarkersTopicsCallBack(self) -> None:

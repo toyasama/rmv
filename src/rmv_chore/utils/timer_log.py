@@ -3,7 +3,7 @@ from rclpy.node import Node
 
 
 class TimerLogger:
-    def __init__(self, node: Node, period: float = 5.0, enabled: bool = True):
+    def __init__(self, node: Node, period: float = 0., enabled: bool = True):
         """
         Timer utility for logging execution time of methods.
         Args:

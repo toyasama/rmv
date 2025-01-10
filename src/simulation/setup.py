@@ -1,5 +1,6 @@
 from setuptools import find_packages, setup
-
+from glob import glob 
+import os
 package_name = 'simulation'
 
 setup(
@@ -10,6 +11,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', glob ('launch/*.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,7 +22,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "simulation = simulation.simulation:main",
+            "markers = simulation.markers_pub:main",
+            "tf_broadcaster = simulation.tf_broadcast:main",
         ],
     },
 )
