@@ -110,7 +110,6 @@ class MarkersPublisher(Node):
         self.randomMarker.lifetime = Duration(sec=random.randint(1, 10))
         self.publisherRandom.publish(self.randomMarker)
 
-        self.get_logger().info("Published markers: Cube, Sphere, Line, and Random.")
 
 def main(args=None):
     rclpy.init(args=args)

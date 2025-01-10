@@ -53,6 +53,15 @@ class MarkerRmv:
         """
         return self.header.frame_id
     
+    def getPose(self) -> Pose:
+        """
+        Get the pose of the marker.
+
+        Returns:
+            Pose: The pose of the marker.
+        """
+        return self.pose
+    
     def setFrameId(self, frame_id: str) -> None:
         """
         Set the TF frame of the marker.

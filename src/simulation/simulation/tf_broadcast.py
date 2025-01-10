@@ -60,7 +60,6 @@ class StaticTFPublisher(Node):
         for transform in self.staticTransforms:
             transform.header.stamp = self.get_clock().now().to_msg()
         self.tfBroadcaster.sendTransform(self.staticTransforms)
-        self.get_logger().info("Published static transforms (excluding frame_3).")
 
     def publishFrame3(self)->None:
         """
@@ -68,7 +67,6 @@ class StaticTFPublisher(Node):
         """
         self.frame3Transform.header.stamp = self.get_clock().now().to_msg()
         self.tfBroadcaster.sendTransform([self.frame3Transform])
-        self.get_logger().info("Published frame_3 transform.")
 
 def main(args=None):
     rclpy.init(args=args)

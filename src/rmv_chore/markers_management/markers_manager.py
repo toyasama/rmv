@@ -58,7 +58,6 @@ class MarkersManager:
         for marker_rmv in self.markers_list:
             if  marker_rmv.isExpired(current_time):
                 self.markers_list.remove(marker_rmv)
-                print(f"Marker {marker_rmv.getIdentifier()} removed")
         
     def getMarkersList(self)->List[MarkerRmv]:
         """
