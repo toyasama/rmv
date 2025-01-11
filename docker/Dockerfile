@@ -31,7 +31,7 @@ RUN pip3 install --no-cache-dir \
     pyyaml \
     opencv-python-headless
 
-#  ROS2 setup to bashrc for the user
+# ROS2 setup to bashrc for the user
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 
 # Expose ROS2 ports for communication

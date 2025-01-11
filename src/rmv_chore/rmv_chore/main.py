@@ -1,5 +1,6 @@
 import rclpy
 from rmv_chore.rmv_chore import RmvChore
+
 def main():
     rclpy.init()
     rmv_chore = RmvChore()
@@ -8,8 +9,8 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        rmv_chore.destroyNode()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
     
 if __name__ == "__main__":
     main()

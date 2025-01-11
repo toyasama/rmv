@@ -25,12 +25,28 @@
     "remoteUser": "devuser",
     "workspaceFolder": "/home/devuser/workspace",
     "mounts": [
-        "source=${localWorkspaceFolder},target=/home/devuser/workspace,type=bind,consistency=cached"
+        "source=${localWorkspaceFolder},target=/home/devuser/workspace,type=bind,consistency=cached",
+        "source=${localEnv:HOME}/.ssh,target=/home/devuser/.ssh,type=bind",
+        "source=rmv-bashhistory,target=/home/devuser/.bash_history,type=volume"
     ],
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2": {}
     },
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "QT_X11_NO_MITSHM": "1",
+        "XAUTHORITY": "${localEnv:XAUTHORITY}",
+        "HOST_USER": "${localEnv:USER}"
+    },
     "runArgs": [
-        "--name=rmv_chore_dev_container"
+        "--name=rmv_chore_dev_container",
+        "--net",
+        "host",
+        "-e",
+        "DISPLAY=${env:DISPLAY}",
+        "-v",
+        "/tmp/.X11-unix:/tmp/.X11-unix",
+        "-v",
+        "${env:HOME}/.Xauthority:${env:HOME}/.Xauthority"
     ]
 }

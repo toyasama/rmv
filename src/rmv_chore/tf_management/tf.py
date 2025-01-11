@@ -1,7 +1,6 @@
 from rclpy.node import Node
-import rclpy
-from geometry_msgs.msg import Pose, TransformStamped, PoseStamped
-from rclpy.time import Duration, Time
+from geometry_msgs.msg import Pose, PoseStamped
+from rclpy.time import Duration
 from tf2_ros import TransformListener, Buffer, LookupException, ConnectivityException, ExtrapolationException
 from typing import Optional, List
 import math
@@ -18,7 +17,7 @@ class TFManager:
         """
         self.node = node
         self.buffer: Buffer = Buffer(cache_time=cache_time)
-        self.listener = TransformListener(self.buffer, self.node, spin_thread=True)
+        self.listener = TransformListener(self.buffer, self.node, spin_thread=False)
         seconds = math.floor(buffer_timeout)  
         nanoseconds = int((buffer_timeout - seconds) * 1e9)  
         self.buffer_timeout: Duration = Duration(seconds=seconds, nanoseconds=nanoseconds)
