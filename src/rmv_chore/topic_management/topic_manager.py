@@ -102,13 +102,15 @@ class TopicManager:
         """
         self.markers_list.append(msg)
         
-    def getMarkersList(self) -> List[Type[Marker|MarkerArray]]:
+    def extractMarkersList(self) -> List[Type[Marker|MarkerArray]]:
         """
-        Get the list of markers.
+        Get the list of markers and clear the internal list.
         Returns:
             list: The list of markers.
         """
-        return self.markers_list
+        marker_list = self.markers_list
+        self.markers_list = []
+        return marker_list
     
         
     def cleanMarkersList(self) -> None:

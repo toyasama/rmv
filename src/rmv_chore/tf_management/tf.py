@@ -1,135 +1,118 @@
+from typing import List, Tuple, Generator
 from rclpy.node import Node
-from geometry_msgs.msg import Pose, PoseStamped
 from rclpy.time import Duration
-from tf2_ros import TransformListener, Buffer, LookupException, ConnectivityException, ExtrapolationException
-from typing import Optional, List
-import math
-from tf2_geometry_msgs import do_transform_pose
-import yaml
+from tf2_msgs.msg import TFMessage
+from tf_management.graph import Graph
+from geometry_msgs.msg import  Transform
+
+class TfDrawInfo:
+    def __init__(self, frame: str, transform: Transform, opacity:float) -> None:
+        """
+        Information for drawing a TF.
+        """
+        self.frame = frame
+        self.transform = transform
+        self.opacity = opacity
 
 class TFManager:
-    def __init__(self, node: Node, buffer_timeout: float, cache_time:Duration) -> None:
+    def __init__(self, node: Node, buffer_timeout: float, cache_duration: float = 3.0) -> None:
         """
-        Constructor for the TFManager class.
-        Args:
-            node (Node): The ROS2 node object.
-            buffer_timeout (float): The timeout for TF lookup operations.
+        Gestionnaire pour la transformation TF avec structures avancées.
         """
         self.node = node
-        self.buffer: Buffer = Buffer(cache_time=cache_time)
-        self.listener = TransformListener(self.buffer, self.node, spin_thread=False)
-        seconds = math.floor(buffer_timeout)  
-        nanoseconds = int((buffer_timeout - seconds) * 1e9)  
-        self.buffer_timeout: Duration = Duration(seconds=seconds, nanoseconds=nanoseconds)
-        self.main_tf_frame = ""
+        # self.buffer_timeout = buffer_timeout
+        # self.cache_duration = cache_duration
+
+        # # Gestion avancée des transformations
+        # self.transform_nodes: Dict[str, TransformNode] = {}
+        # self.parent_child_map: Dict[str, TransformStamped] = {}
+
+        # # Cadre principal par défaut
+        self.main_frame = ""
+        self.start_time = self.node.get_clock().now()
+        self.frame_index = 0
+        self.count = 0
+        self.expiration_duration = 5.0
+        
+        self.graph = Graph()
+
+        # Abonnements
+        self.node.create_subscription(TFMessage, '/tf', self.tfCallback, 10)
+        self.node.create_subscription(TFMessage, '/tf_static', self.tfStaticCallback, 10)
+        self.graph.start()
         self.node.get_logger().info("TFManager initialized successfully.")
-        
-    def setMainTfFrame(self, frame: str) -> None:
+
+    def tfCallback(self, msg: TFMessage) -> None:
         """
-        Set the main TF frame for the TF manager.
-        Args:
-            frame (str): The name of the main TF frame.
+        Callback pour les transformations dynamiques.
         """
-        self.main_tf_frame = frame
+        for transform in msg.transforms:
+            self.graph.addEdgeFromTransformStamped(transform,expiration= self.expiration_duration, static=False)
+
+    def tfStaticCallback(self, msg: TFMessage) -> None:
+        """
+        Callback pour les transformations statiques.
+        """
+        for transform in msg.transforms:
+            self.graph.addEdgeFromTransformStamped(transform, static=True)
+
+
+    def getAvailableTFNames(self) -> List[str]:
+        """
+        Récupère la liste des noms des TF disponibles à partir des buffers statiques et des relations parent-enfant.
         
-    def getMainTfFrame(self) -> str:
+        Returns:
+            List[str]: Liste des noms des frames disponibles.
+        """
+        available_frames = self.graph.getAllFrames()
+        # if  available_frames: print(available_frames)
+        return available_frames
+
+
+    def setDefaultMainFrame(self)->None:
+        
+        """
+        Set the main TF frame to the first available frame if ones.
+        """
+        frames = self.getAvailableTFNames()
+        if frames:
+            self.main_frame = frames[self.count]
+            
+        if self.node.get_clock().now() - self.start_time > Duration(seconds=15) and frames:
+            self.start_time = self.node.get_clock().now()
+            self.count = (self.count +1) % len(frames)
+        
+    def getMainFrame(self)->str:
         """
         Get the main TF frame for the TF manager.
         Returns:
             str: The name of the main TF frame.
         """
-        return self.main_tf_frame
-        
-    def setDefaultMainFrame(self) -> None:
-        """
-        Set the main TF frame to the first available frame if ones.
-        """
-        frames = self.getAvailableFrames()
-        if frames:
-            self.main_tf_frame = frames[0]
+        return self.main_frame
     
-    def isInMainTfFrame(self, frame: str) -> bool:
+    def equalMainFrame(self, frame: str)->bool:
         """
-        Check if a frame is the main TF frame.
+        Check if the frame is the main frame.
         Args:
-            frame (str): The frame name.
+            frame (str): The frame to check.
         Returns:
-            bool: True if the frame is the main TF frame, False otherwise.
+            bool: True if the frame is the main frame, False otherwise.
         """
-        return frame == self.main_tf_frame
+        return frame == self.main_frame
     
-
-    def getAvailableFrames(self) -> List[str]:
+    def getRelativeTransforms(self) -> List[Tuple[str, TfDrawInfo]]:
         """
-        List all unique TF frames, using YAML parsing for efficiency.
-
+        Get the relative transforms of the main frame with respect to the other frames.
         Returns:
-            List[str]: A clean list of unique frame names.
+            List[Tuple[str, Pose]]: The relative transforms of the main frame.
         """
-        frames = set()
-        try:
-            yaml_frames = self.buffer.all_frames_as_yaml() 
-            frame_data = yaml.safe_load(yaml_frames)
-            for frame, data in frame_data.items():
-                if not data["parent"]:
-                    continue
-                parent = data["parent"]
-                frames.add(frame)
-                frames.add(parent)
-                
-
-            return sorted(frames)  
-        except Exception as e:
-            # self.node.get_logger().error(f"Failed to get available frames: {str(e)}")
-            return []
-    
-
-
-    def canTransform(self, source_frame: str, target_frame: str) -> bool:
-        """
-        Check if a transformation is possible between two frames.
-        Args:
-            source_frame (str): The source frame name.
-            target_frame (str): The target frame name.
-        Returns:
-            bool: True if the transformation is possible, False otherwise.
-        """
-        if not source_frame or not target_frame:
-            return False
-
-        try:
-            return self.buffer.can_transform(target_frame, source_frame, self.buffer_timeout)
-        except (LookupException, ConnectivityException, ExtrapolationException) as e:
-            self.node.get_logger().error(f"Failed to check transform between {source_frame} and {target_frame}: {e}")
-            return False
-
-    def transformPose(self, pose: Pose, source_frame: str, target_frame: str) -> Optional[Pose]:
-        """
-        Transform a pose from one frame to another.
-        Args:
-            pose (Pose): The pose to be transformed.
-            source_frame (str): The source frame name.
-            target_frame (str): The target frame name.
-        Returns:
-            Optional[Pose]: The transformed pose, or None if the transformation fails.
-        """
-        if not source_frame or not target_frame:
-            self.node.get_logger().warning("Source or target frame is empty. Transformation aborted.")
-            return None
-
-        now = self.node.get_clock().now()
-        try:
-            pose_stamped = PoseStamped()
-            pose_stamped.header.stamp = now.to_msg()
-            pose_stamped.header.frame_id = source_frame
-            pose_stamped.pose = pose
-
-            transformed_pose_stamped: PoseStamped = self.buffer.transform(pose_stamped, target_frame,timeout=self.buffer_timeout)
-
-            return transformed_pose_stamped.pose
-
-        except (LookupException, ConnectivityException, ExtrapolationException) as e:
-            self.node.get_logger().error(f"Failed to transform pose from {source_frame} to {target_frame}: {str(e)}")
-            return None
-
+        list_transforms = []
+        for frame in self.graph.getAllFrames():
+            transform, opacity = self.graph.calculateTransform(self.main_frame, frame)
+            transform_info = TfDrawInfo(frame, transform, opacity)
+            
+            if transform:
+                list_transforms.append((frame, transform_info))
+        print(f"list_transforms {list_transforms}")
+        return list_transforms
         

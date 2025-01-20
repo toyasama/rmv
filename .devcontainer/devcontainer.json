@@ -3,7 +3,6 @@
     "build": {
         "dockerfile": "../docker/Dockerfile",
         "context": "..",
-        "args": {},
         "options": [
             "--tag=rmv_chore:latest"
         ]
@@ -21,32 +20,22 @@
             ]
         }
     },
-    "postCreateCommand": "colcon build && . install/setup.bash",
+    "postCreateCommand": "colcon build --symlink && . install/setup.bash",
     "remoteUser": "devuser",
     "workspaceFolder": "/home/devuser/workspace",
     "mounts": [
         "source=${localWorkspaceFolder},target=/home/devuser/workspace,type=bind,consistency=cached",
-        "source=${localEnv:HOME}/.ssh,target=/home/devuser/.ssh,type=bind",
-        "source=rmv-bashhistory,target=/home/devuser/.bash_history,type=volume"
+        "source=${localEnv:HOME}/.ssh,target=/home/devuser/.ssh,type=bind"
     ],
-    "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-    },
     "containerEnv": {
         "DISPLAY": "${localEnv:DISPLAY}",
-        "QT_X11_NO_MITSHM": "1",
-        "XAUTHORITY": "${localEnv:XAUTHORITY}",
-        "HOST_USER": "${localEnv:USER}"
+        "HOST_USER": "${localEnv:USER}",
+        "HOST_WS_MOUNT": "${localWorkspaceFolder}",
+        "WORKSPACE_PATH": "/home/devuser/workspace"
     },
     "runArgs": [
-        "--name=rmv_chore_dev_container",
-        "--net",
-        "host",
-        "-e",
-        "DISPLAY=${env:DISPLAY}",
         "-v",
         "/tmp/.X11-unix:/tmp/.X11-unix",
-        "-v",
-        "${env:HOME}/.Xauthority:${env:HOME}/.Xauthority"
+        "--name=rmv_chore_dev_container"
     ]
 }
