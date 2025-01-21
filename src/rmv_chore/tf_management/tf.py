@@ -2,17 +2,9 @@ from typing import List, Tuple, Generator
 from rclpy.node import Node
 from rclpy.time import Duration
 from tf2_msgs.msg import TFMessage
-from tf_management.graph import Graph
+from tf_management.graph import Graph, FrameDrawingInfo
 from geometry_msgs.msg import  Transform
 
-class TfDrawInfo:
-    def __init__(self, frame: str, transform: Transform, opacity:float) -> None:
-        """
-        Information for drawing a TF.
-        """
-        self.frame = frame
-        self.transform = transform
-        self.opacity = opacity
 
 class TFManager:
     def __init__(self, node: Node, buffer_timeout: float, cache_duration: float = 3.0) -> None:
@@ -28,7 +20,7 @@ class TFManager:
         # self.parent_child_map: Dict[str, TransformStamped] = {}
 
         # # Cadre principal par défaut
-        self.main_frame = ""
+        self.main_frame_name = ""
         self.start_time = self.node.get_clock().now()
         self.frame_index = 0
         self.count = 0
@@ -76,9 +68,9 @@ class TFManager:
         """
         frames = self.getAvailableTFNames()
         if frames:
-            self.main_frame = frames[self.count]
+            self.main_frame_name = frames[self.count]
             
-        if self.node.get_clock().now() - self.start_time > Duration(seconds=15) and frames:
+        if self.node.get_clock().now() - self.start_time > Duration(seconds=5) and frames:
             self.start_time = self.node.get_clock().now()
             self.count = (self.count +1) % len(frames)
         
@@ -88,7 +80,7 @@ class TFManager:
         Returns:
             str: The name of the main TF frame.
         """
-        return self.main_frame
+        return self.main_frame_name
     
     def equalMainFrame(self, frame: str)->bool:
         """
@@ -98,21 +90,23 @@ class TFManager:
         Returns:
             bool: True if the frame is the main frame, False otherwise.
         """
-        return frame == self.main_frame
+        return frame == self.main_frame_name
     
-    def getRelativeTransforms(self) -> List[Tuple[str, TfDrawInfo]]:
+    def getRelativeTransforms(self) -> List[FrameDrawingInfo]:
         """
         Get the relative transforms of the main frame with respect to the other frames.
+
         Returns:
-            List[Tuple[str, Pose]]: The relative transforms of the main frame.
+            List[FrameDrawingInfo]: List of relative frame information.
         """
         list_transforms = []
-        for frame in self.graph.getAllFrames():
-            transform, opacity = self.graph.calculateTransform(self.main_frame, frame)
-            transform_info = TfDrawInfo(frame, transform, opacity)
-            
-            if transform:
-                list_transforms.append((frame, transform_info))
-        print(f"list_transforms {list_transforms}")
+        for frame_name in self.graph.getAllFrames():
+            if frame_name == self.main_frame_name:
+                continue
+
+            frame_info = self.graph.calculateTransform(self.main_frame_name, frame_name)
+
+            if frame_info:
+                list_transforms.append(frame_info)
+
         return list_transforms
-        

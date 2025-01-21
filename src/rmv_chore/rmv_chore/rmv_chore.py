@@ -10,7 +10,7 @@ import math
 from visualization.visualization import Visualization
 from std_msgs.msg import ColorRGBA
 from typing import Tuple, List
-from tf_management.tf import  TfDrawInfo
+from tf_management.tf import  FrameDrawingInfo
 from rmv_chore.shared_data import SharedData
 from parameters.params import RmvParams , VisualizationParams
 
@@ -60,7 +60,7 @@ class RmvChore:
         self.shared_data.update_main_tf(self.tf_manager.getMainFrame())
         # filtered_markers = self._filterMarkersInMainTfFrame(markers_rmv)
         
-        frames:Tuple[str, TfDrawInfo] = self.tf_manager.getRelativeTransforms()
+        frames:FrameDrawingInfo = self.tf_manager.getRelativeTransforms()
         self.shared_data.update_other_tfs(frames) 
         # self.shared_data.update_markers(filtered_markers)
         

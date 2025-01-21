@@ -2,7 +2,7 @@ import threading
 from typing import Dict, List
 from markers_management.markers import MarkerRmv
 from geometry_msgs.msg import TransformStamped
-from tf_management.tf import TfDrawInfo
+from tf_management.tf import FrameDrawingInfo
 class SharedData:
     def __init__(self):
         self.lock = threading.Lock()
@@ -14,7 +14,7 @@ class SharedData:
         with self.lock:
             self.main_tf = tf
 
-    def update_other_tfs(self, tfs: Dict[str, TfDrawInfo]):
+    def update_other_tfs(self, tfs: Dict[str, FrameDrawingInfo]):
         with self.lock:
             self.other_tfs = tfs
 
@@ -26,7 +26,7 @@ class SharedData:
         with self.lock:
             return self.main_tf
 
-    def get_other_tfs(self) -> TfDrawInfo:
+    def get_other_tfs(self) -> FrameDrawingInfo:
         with self.lock:
             return self.other_tfs
 
