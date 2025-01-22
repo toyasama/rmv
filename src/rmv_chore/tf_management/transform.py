@@ -1,5 +1,5 @@
 from typing import Optional
-from geometry_msgs.msg import Transform
+from geometry_msgs.msg import Transform, Pose
 import time
 import tf_transformations as tf
 
@@ -171,3 +171,68 @@ class TransformUtils:
         transform.translation.x, transform.translation.y, transform.translation.z = translation
         transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w = rotation
         return transform
+    
+    @staticmethod
+    def poseToMatrix(pose: Pose):
+        """
+        Convert a Pose into a transformation matrix.
+
+        Args:
+            pose (Pose): The Pose to convert.
+
+        Returns:
+            numpy.ndarray: The 4x4 transformation matrix.
+        """
+        position = [pose.position.x, pose.position.y, pose.position.z]
+        orientation = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+
+        # Create transformation matrix
+        matrix = tf.translation_matrix(position)
+        matrix[:3, :3] = tf.quaternion_matrix(orientation)[:3, :3]
+        return matrix
+
+    @staticmethod
+    def matrixToPose(matrix) -> Pose:
+        """
+        Convert a transformation matrix back into a Pose.
+
+        Args:
+            matrix (numpy.ndarray): The 4x4 transformation matrix.
+
+        Returns:
+            Pose: The corresponding Pose.
+        """
+        translation = tf.translation_from_matrix(matrix)
+        rotation = tf.quaternion_from_matrix(matrix)
+
+        pose = Pose()
+        pose.position.x, pose.position.y, pose.position.z = translation
+        pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w = rotation
+        return pose
+
+    @staticmethod
+    def transformPoseToParentFrame(pose: Pose, transform: Transform) -> Pose:
+        """
+        Transform a Pose from a child frame (frame 2) to the parent frame (frame 1)
+        using the inverse of a given Transform.
+
+        Args:
+            pose (Pose): The Pose in the child frame (frame 2).
+            transform (Transform): The Transform from the parent frame (frame 1) to the child frame (frame 2).
+
+        Returns:
+            Pose: The Pose in the parent frame (frame 1).
+        """
+        # Invert the transform (T_1->2 to T_2->1)
+        inverse_transform = TransformUtils.invertTransform(transform)
+
+        # Convert Pose and Transform to matrices
+        pose_matrix = TransformUtils.poseToMatrix(pose)
+        transform_matrix = TransformUtils.transformToMatrix(inverse_transform)
+
+        # Apply the transformation
+        transformed_matrix = tf.concatenate_matrices(transform_matrix, pose_matrix)
+
+        # Convert the result back to a Pose
+        transformed_pose = TransformUtils.matrixToPose(transformed_matrix)
+        return transformed_pose

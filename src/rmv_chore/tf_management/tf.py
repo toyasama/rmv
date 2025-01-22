@@ -2,9 +2,10 @@ from typing import List, Tuple, Generator
 from rclpy.node import Node
 from rclpy.time import Duration
 from tf2_msgs.msg import TFMessage
-from tf_management.graph import Graph, FrameDrawingInfo
-from geometry_msgs.msg import  Transform
-
+from tf_management.graph import Graph, FrameDrawingInfo, TransformUtils
+from geometry_msgs.msg import  Transform, Pose
+from utils.timer_log import TimerLogger
+import tf_transformations as tf
 
 class TFManager:
     def __init__(self, node: Node, buffer_timeout: float, cache_duration: float = 3.0) -> None:
@@ -12,12 +13,8 @@ class TFManager:
         Gestionnaire pour la transformation TF avec structures avancées.
         """
         self.node = node
-        # self.buffer_timeout = buffer_timeout
-        # self.cache_duration = cache_duration
+        self.timer_logger = TimerLogger(self.node, 5.0)
 
-        # # Gestion avancée des transformations
-        # self.transform_nodes: Dict[str, TransformNode] = {}
-        # self.parent_child_map: Dict[str, TransformStamped] = {}
 
         # # Cadre principal par défaut
         self.main_frame_name = ""
@@ -99,14 +96,20 @@ class TFManager:
         Returns:
             List[FrameDrawingInfo]: List of relative frame information.
         """
-        list_transforms = []
-        for frame_name in self.graph.getAllFrames():
-            if frame_name == self.main_frame_name:
-                continue
+        return self.timer_logger.logExecutionTime(self._getRelativeTransforms)()
+    
 
-            frame_info = self.graph.calculateTransform(self.main_frame_name, frame_name)
+    def _getRelativeTransforms(self) -> List[FrameDrawingInfo]:
+        """
+        Optimized method to get all relative transforms from the main frame.
 
-            if frame_info:
-                list_transforms.append(frame_info)
+        Returns:
+            List[FrameDrawingInfo]: List of relative frame information.
+        """
+        if not self.main_frame_name:
+            return []
 
-        return list_transforms
+        return self.graph.calculateAllTransformsFrom(self.main_frame_name)
+    
+
+   

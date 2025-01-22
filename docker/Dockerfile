@@ -17,7 +17,8 @@ RUN pip3 install --no-cache-dir \
     matplotlib \
     pyyaml \
     opencv-python-headless \
-    transforms3d
+    transforms3d \
+    networkx==2.5
 
 # Non-root user for development
 ARG USERNAME=devuser

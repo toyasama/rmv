@@ -43,8 +43,6 @@ class Visualization(threading.Thread):
             self.clearImage()
 
             main_tf = self.shared_data.get_main_tf()
-            other_tfs = self.shared_data.get_other_tfs()
-            markers = self.shared_data.get_markers()
 
             if main_tf:
                 self.draw.setConversionRatio(self.params.conversion_ratio)

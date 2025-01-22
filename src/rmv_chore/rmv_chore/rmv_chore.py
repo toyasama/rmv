@@ -10,7 +10,7 @@ import math
 from visualization.visualization import Visualization
 from std_msgs.msg import ColorRGBA
 from typing import Tuple, List
-from tf_management.tf import  FrameDrawingInfo
+from tf_management.tf import  FrameDrawingInfo, TransformUtils
 from rmv_chore.shared_data import SharedData
 from parameters.params import RmvParams , VisualizationParams
 
@@ -58,13 +58,13 @@ class RmvChore:
         markers_rmv = self.markers_manager.getMarkersList()
         self.tf_manager.setDefaultMainFrame() 
         self.shared_data.update_main_tf(self.tf_manager.getMainFrame())
-        # filtered_markers = self._filterMarkersInMainTfFrame(markers_rmv)
         
         frames:FrameDrawingInfo = self.tf_manager.getRelativeTransforms()
         self.shared_data.update_other_tfs(frames) 
-        # self.shared_data.update_markers(filtered_markers)
         
-        # # self.queue_list.getMarkersQueue().put(filtered_markers)
+        filtered_markers = self._filterMarkersInMainTfFrame(markers_rmv, frames)
+        self.shared_data.update_markers(filtered_markers)
+        
         
         
         
@@ -75,30 +75,36 @@ class RmvChore:
         self.timer_logger.logExecutionTime(self._updateMarkers)()
         
         
-    def _filterMarkersInMainTfFrame(self, markers_rmv:List[MarkerRmv])->List[MarkerRmv]:
+    def _filterMarkersInMainTfFrame(self, markers_rmv: List[MarkerRmv], frames_info:FrameDrawingInfo) -> List[MarkerRmv]:
         """
-        Update the markers list to the main TF frame.
+        Update the markers list to the main TF frame, filtering based on valid transforms.
+
         Args:
-            markers_rmv (list[MarkerRmv]): The list of markers to be updated.
+            markers_rmv (List[MarkerRmv]): The list of markers to be updated.
+
+        Returns:
+            List[MarkerRmv]: The filtered markers in the main frame.
         """
-        filtered_markers :List[MarkerRmv] = []
+        filtered_markers = []
+        relative_transforms = {frame.name: frame for frame in frames_info}
+
         for marker in markers_rmv:
-            
-            if self.tf_manager.equalMainFrame(marker.getTfFrame()):
+            frame = marker.getTfFrame()
+
+            if self.tf_manager.equalMainFrame(frame):
                 filtered_markers.append(marker)
                 continue
-                
-            if self.tf_manager.canTransform(marker.getTfFrame(), self.tf_manager.main_tf_frame):
-                transform_point = self.tf_manager.transformPose(marker.getPose(), marker.getTfFrame(), self.tf_manager.getMainTfFrame())
-                if transform_point:
-                    marker.setFrameId(self.tf_manager.getMainTfFrame())
-                    marker.setPose(transform_point)
+
+            if frame in relative_transforms and relative_transforms[frame].valid:
+                transform = relative_transforms[frame].transform
+                transformed_pose = TransformUtils.transformPoseToParentFrame(marker.getPose(), transform)
+                if transformed_pose:
+                    marker.setFrameId(self.tf_manager.getMainFrame())
+                    marker.setPose(transformed_pose)
                     filtered_markers.append(marker)
-            else:
-                print(f"Cannot transform {marker.getIdentifier()} from {marker.getTfFrame()} to {self.tf_manager.getMainTfFrame()}")
             
-                    
         return filtered_markers
+
         
     def getNode(self)->Node:
         """

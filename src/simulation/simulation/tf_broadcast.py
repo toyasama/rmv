@@ -16,7 +16,8 @@ class StaticTFPublisher(Node):
         self.tfBroadcaster = TransformBroadcaster(self)
         self.staticTransforms = self.initializeTransforms()
         self.timer = self.create_timer(1.0, self.publishStaticTransforms)
-        self.timerFrame3 = self.create_timer(1.0, self.publishFrame3)
+        self.timerFrame3 = self.create_timer(2.0, self.publishFrame3)
+        self.timerFrame6 = self.create_timer(3.0, self.publishFrame6)
         self.get_logger().info("StaticTFPublisher initialized and running.")
 
     def initializeTransforms(self)->list[TransformStamped]:
@@ -27,9 +28,12 @@ class StaticTFPublisher(Node):
         transforms = []
         transform1To2 = self.createTransform("frame_1", "frame_2", x=1.0, y=0.0, z=0.0)
         transforms.append(transform1To2)
-        self.frame3Transform = self.createTransform("frame_1", "frame_3", x=2.0, y=1.0, z=0.0)
+        self.frame3Transform = self.createTransform("frame_1", "frame_3", x=-2.0, y=-2.0, z=0.0)
         transform1To4 = self.createTransform("frame_1", "frame_4", x=0.5, y=2.0, z=1.0)
+        transform4To5 = self.createTransform("frame_4", "frame_5", x=0.2, y=-1.5, z=0.0)
+        self.transform3To6 = self.createTransform("frame_3", "frame_6", x=-1.0, y=1.0, z=0.0)
         transforms.append(transform1To4)
+        transforms.append(transform4To5)
         return transforms
 
     def createTransform(self, parentFrame, childFrame, x=0.0, y=0.0, z=0.0)->TransformStamped:
@@ -71,6 +75,13 @@ class StaticTFPublisher(Node):
         """
         self.frame3Transform.header.stamp = self.get_clock().now().to_msg()
         self.tfBroadcaster.sendTransform([self.frame3Transform])
+    
+    def publishFrame6(self)->None:
+        """
+        Publish the frame_6 static transform.
+        """
+        self.transform3To6.header.stamp = self.get_clock().now().to_msg()
+        self.tfBroadcaster.sendTransform([self.transform3To6])
 
 def main(args=None):
     rclpy.init(args=args)
