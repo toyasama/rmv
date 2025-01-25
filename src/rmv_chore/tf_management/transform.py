@@ -223,16 +223,12 @@ class TransformUtils:
         Returns:
             Pose: The Pose in the parent frame (frame 1).
         """
-        # Invert the transform (T_1->2 to T_2->1)
-        inverse_transform = TransformUtils.invertTransform(transform)
-
-        # Convert Pose and Transform to matrices
         pose_matrix = TransformUtils.poseToMatrix(pose)
-        transform_matrix = TransformUtils.transformToMatrix(inverse_transform)
+        transform_matrix = TransformUtils.transformToMatrix(transform)
 
-        # Apply the transformation
         transformed_matrix = tf.concatenate_matrices(transform_matrix, pose_matrix)
 
-        # Convert the result back to a Pose
         transformed_pose = TransformUtils.matrixToPose(transformed_matrix)
         return transformed_pose
+    
+    

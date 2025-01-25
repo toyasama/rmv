@@ -9,9 +9,8 @@ import time
 from visualization.draw import Draw
 from rmv_chore.shared_data import SharedData
 from parameters.params import VisualizationParams
-from rclpy.qos import qos_profile_sensor_data
 
-class Visualization(threading.Thread):
+class Visualization():
     def __init__(self, node: Node, params: VisualizationParams, shared_data: SharedData):
         """
         Constructor for the Visualization class.
@@ -26,7 +25,6 @@ class Visualization(threading.Thread):
         self.shared_data = shared_data
         self.bridge = CvBridge()
         self.image = self.createNewImage()
-        self.running = False
         self.publisher = self.node.create_publisher(Image, "visualization_image", qos_profile_sensor_data)
         self.draw = Draw()
         
@@ -34,31 +32,19 @@ class Visualization(threading.Thread):
         """
         Run the visualization thread.
         """
-        self.running = True
         
-        while self.running:
-            if not self.running:
-                break
-            
-            self.clearImage()
+        self.clearImage()
 
-            main_tf = self.shared_data.get_main_tf()
+        main_tf = self.shared_data.get_main_tf()
 
-            if main_tf:
-                self.draw.setConversionRatio(self.params.conversion_ratio)
-                self.draw.processVisualization(self.image, self.getImageCenter(), self.shared_data)
+        if main_tf:
+            self.draw.setConversionRatio(self.params.conversion_ratio)
+            self.draw.processVisualization(self.image, self.getImageCenter(), self.shared_data)
 
-            if self.params.publish_image:
-                ros_image = self.bridge.cv2_to_imgmsg(self.image, encoding="bgr8")
-                self.publisher.publish(ros_image)
+        if self.params.publish_image:
+            ros_image = self.bridge.cv2_to_imgmsg(self.image, encoding="bgr8")
+            self.publisher.publish(ros_image)
 
-            time.sleep(1.0 / self.params.fps)
-
-    def stop(self):
-        """
-        Stop the visualization thread.
-        """
-        self.running = False
 
     def getImageCenter(self) -> Tuple[int, int]:
         """

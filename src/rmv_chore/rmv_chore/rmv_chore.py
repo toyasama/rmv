@@ -13,7 +13,7 @@ from typing import Tuple, List
 from tf_management.tf import  FrameDrawingInfo, TransformUtils
 from rmv_chore.shared_data import SharedData
 from parameters.params import RmvParams , VisualizationParams
-
+import copy
 class RmvChore:
     def __init__(self)->None:
         """
@@ -23,20 +23,19 @@ class RmvChore:
         
         self.shared_data: SharedData = SharedData()
         rmv_params: RmvParams = RmvParams()
+        background_color = ColorRGBA(r=0.1, g=0.1, b=0.1, a=1.0)
+        visu_params = VisualizationParams(width=800, height=600, fps=30, background_color=background_color)
         
         self.topic_manager : TopicManager = TopicManager(self.node, rmv_params.UPDATE_TOPIC_PROCESS_PERIOD)
-        self.timer_test = self.node.create_timer(rmv_params.UPDATE_MARKERS_PROCESS_PERIOD, self._updateMarkersCallBack)
+        self.timer_test = self.node.create_timer(1/visu_params.fps, self._updateMarkersCallBack)
         
         self.markers_manager = MarkersManager(self.node)
         self.timer_logger = TimerLogger(self.node, 5.0)
         
         self.tf_manager = TFManager(self.node, rmv_params.TIMEOUT_TF_BUFFER)
         
-        background_color = ColorRGBA(r=0.1, g=0.1, b=0.1, a=1.0)
-        rmv_params = VisualizationParams(width=800, height=600, fps=30, background_color=background_color)
         
-        self.visualization = Visualization(self.node, rmv_params, self.shared_data)
-        self.visualization.start()
+        self.visualization = Visualization(self.node, visu_params, self.shared_data)
         
         print("Node rmv_chore created successfully")
         
@@ -44,18 +43,18 @@ class RmvChore:
         """
         Destructor for the RmvChore class.
         """
-        self.visualization.stop()
-        self.visualization.join()
         
     def _updateMarkers(self)->None:
         """
         Method to update the markers list and push filtered markers to the queue.
         """
-        markers = self.topic_manager.extractMarkersList()
-        self.topic_manager.cleanMarkersList()
-        self.markers_manager.processNewMarkers(markers)
         
-        markers_rmv = self.markers_manager.getMarkersList()
+        markers = copy.deepcopy(self.topic_manager.extractMarkersList())
+        self.topic_manager.cleanMarkersList()
+        self.markers_manager.processMarkers(markers)
+        
+        
+        markers_rmv = copy.deepcopy(self.markers_manager.getMarkersList())
         self.tf_manager.setDefaultMainFrame() 
         self.shared_data.update_main_tf(self.tf_manager.getMainFrame())
         
@@ -64,9 +63,7 @@ class RmvChore:
         
         filtered_markers = self._filterMarkersInMainTfFrame(markers_rmv, frames)
         self.shared_data.update_markers(filtered_markers)
-        
-        
-        
+        self.visualization.run()
         
     def _updateMarkersCallBack(self)->None:
         """
@@ -86,8 +83,7 @@ class RmvChore:
             List[MarkerRmv]: The filtered markers in the main frame.
         """
         filtered_markers = []
-        relative_transforms = {frame.name: frame for frame in frames_info}
-
+        relative_transforms:dict[str,FrameDrawingInfo] = {frame.name: frame for frame in frames_info}
         for marker in markers_rmv:
             frame = marker.getTfFrame()
 
@@ -95,13 +91,15 @@ class RmvChore:
                 filtered_markers.append(marker)
                 continue
 
-            if frame in relative_transforms and relative_transforms[frame].valid:
+            if frame in relative_transforms :
                 transform = relative_transforms[frame].transform
                 transformed_pose = TransformUtils.transformPoseToParentFrame(marker.getPose(), transform)
                 if transformed_pose:
                     marker.setFrameId(self.tf_manager.getMainFrame())
                     marker.setPose(transformed_pose)
                     filtered_markers.append(marker)
+            # else:
+            #     print("not valid")
             
         return filtered_markers
 

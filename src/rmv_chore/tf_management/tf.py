@@ -16,7 +16,6 @@ class TFManager:
         self.timer_logger = TimerLogger(self.node, 5.0)
 
 
-        # # Cadre principal par défaut
         self.main_frame_name = ""
         self.start_time = self.node.get_clock().now()
         self.frame_index = 0
@@ -25,7 +24,6 @@ class TFManager:
         
         self.graph = Graph()
 
-        # Abonnements
         self.node.create_subscription(TFMessage, '/tf', self.tfCallback, 10)
         self.node.create_subscription(TFMessage, '/tf_static', self.tfStaticCallback, 10)
         self.graph.start()

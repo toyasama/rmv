@@ -30,6 +30,8 @@ class MarkersPublisher(Node):
         marker.id = 0
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
+        marker.pose.position.x = 2.0
+        marker.pose.position.y = -1.0
         marker.pose.orientation.x = 0.0
         marker.pose.orientation.y = 0.0
         marker.pose.orientation.z = 0.0
@@ -41,6 +43,7 @@ class MarkersPublisher(Node):
         marker.color.g = 0.0
         marker.color.b = 0.0
         marker.color.a = 1.0
+        marker.lifetime = Duration(sec=1, nanosec=5000)
         return marker
 
     def _createSphereMarker(self):

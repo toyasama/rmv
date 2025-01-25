@@ -20,7 +20,7 @@ class MarkerTypes(Enum):
     TRIANGLE_LIST = 11
     
 class MarkerRmv:
-    def __init__(self,  marker: Marker):
+    def __init__(self,  marker: Marker, current_time: Time):
         """
         Constructor for the MarkerRmv class with namespace and ID.
 
@@ -33,6 +33,11 @@ class MarkerRmv:
         self.color = marker.color
         self.lifetime = marker.lifetime
         self.header = marker.header
+        self.type = marker.type
+        self.reception_time = current_time
+
+    def getType(self):
+        return self.type
 
 
     def getIdentifier(self) -> tuple:
@@ -102,13 +107,5 @@ class MarkerRmv:
         Returns:
             bool: True if the marker is expired, False otherwise.
         """
-        return current_time.sec + current_time.nanosec * 1e-9 > self.lifetime.sec + self.lifetime.nanosec * 1e-9 + self.header.stamp.sec + self.header.stamp.nanosec * 1e-9
+        return current_time.sec + (current_time.nanosec * 1e-9) > self.lifetime.sec + (self.lifetime.nanosec * 1e-9) + self.reception_time.sec + (self.reception_time.nanosec * 1e-9)
     
-    def getFrameId(self) -> str:
-        """
-        Get the frame ID of the marker.
-
-        Returns:
-            str: The frame ID of the marker.
-        """
-        return self.header.frame_id

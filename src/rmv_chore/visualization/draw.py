@@ -6,33 +6,30 @@ from markers_management.markers import MarkerRmv
 from geometry_msgs.msg import Point, Transform
 from tf_management.tf import FrameDrawingInfo
 from rmv_chore.shared_data import SharedData
+from visualization_msgs.msg import Marker
 
-# Utilities for drawing
 class DrawingUtils:
     @staticmethod
     def draw_arrow(image: np.ndarray, start: Tuple[int, int], end: Tuple[int, int], color: Tuple[int, int, int], thickness: int = 2, tip_length: float = 0.1, opacity: float = 1.0) -> None:
-        """
-        Draw an arrowed line with specified opacity.
-        """
         overlay = image.copy()
         cv2.arrowedLine(overlay, start, end, color=color, thickness=thickness, tipLength=tip_length)
         cv2.addWeighted(overlay, opacity, image, 1 - opacity, 0, image)
 
     @staticmethod
     def draw_text(image: np.ndarray, text: str, position: Tuple[int, int], font_scale: float = 0.3, color: Tuple[int, int, int] = (255, 255, 255), thickness: int = 1) -> None:
-        """
-        Draw text on the image.
-        """
         cv2.putText(image, text, position, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=font_scale,
                     color=color, thickness=thickness, lineType=cv2.LINE_AA)
 
     @staticmethod
     def draw_circle(image: np.ndarray, center: Tuple[int, int], radius: int, color: Tuple[int, int, int], opacity: float = 1.0) -> None:
-        """
-        Draw a circle with specified opacity.
-        """
         overlay = image.copy()
         cv2.circle(overlay, center, radius, color, -1)
+        cv2.addWeighted(overlay, opacity, image, 1 - opacity, 0, image)
+
+    @staticmethod
+    def draw_rectangle(image: np.ndarray, top_left: Tuple[int, int], bottom_right: Tuple[int, int], color: Tuple[int, int, int], opacity: float = 1.0) -> None:
+        overlay = image.copy()
+        cv2.rectangle(overlay, top_left, bottom_right, color, -1)
         cv2.addWeighted(overlay, opacity, image, 1 - opacity, 0, image)
 
 class DrawFrames:
@@ -132,33 +129,41 @@ class DrawFrames:
 
 class DrawMarkers:
     def __init__(self):
-        """
-        Constructor for the DrawMarkers class.
-        """
         self.conversion_ratio = 0.0
 
     def setConversionRatio(self, conversion_ratio: float) -> None:
-        """
-        Set the conversion ratio for the markers.
-        args:
-            conversion_ratio (float): The conversion ratio.
-        """
         self.conversion_ratio = conversion_ratio
 
     def drawMarkers(self, image: np.ndarray, markers: List[MarkerRmv], center: Tuple[int, int]) -> None:
-        """
-        Draw the markers on the image.
-        args:
-            image (np.ndarray): The image to draw on.
-            markers (List[MarkerRmv]): The list of markers.
-            center (Tuple[int, int]): The center of the image.
-        """
-        for marker in markers:
+        sorted_markers = sorted(markers, key=lambda m: m.color.a)
+        for marker in sorted_markers:
             position: Point = marker.getPose().position
             px = int(center[0] + position.x * self.conversion_ratio)
             py = int(center[1] - position.y * self.conversion_ratio)
-            radius = int(0.1 * self.conversion_ratio)
-            DrawingUtils.draw_circle(image, (px, py), radius, color=(0, 255, 255))
+
+            color = (
+                int(marker.color.r * 255),
+                int(marker.color.g * 255),
+                int(marker.color.b * 255)
+            )
+
+            if marker.getType() == Marker.ARROW:
+                end_point = (px + 20, py)  # Example: arbitrary endpoint calculation
+                DrawingUtils.draw_arrow(image, (px, py), end_point, color, opacity=marker.color.a)
+
+            elif marker.type == Marker.CUBE:
+                side_length = int(marker.scale.x * self.conversion_ratio)
+                top_left = (px - side_length // 2, py - side_length // 2)
+                bottom_right = (px + side_length // 2, py + side_length // 2)
+                DrawingUtils.draw_rectangle(image, top_left, bottom_right, color, opacity=marker.color.a)
+
+            elif marker.type == Marker.SPHERE:
+                radius = int(marker.scale.x * self.conversion_ratio / 2)
+                DrawingUtils.draw_circle(image, (px, py), radius, color, opacity=marker.color.a)
+
+            elif marker.type == Marker.TEXT_VIEW_FACING:
+                # DrawingUtils.draw_text(image, marker.text, (px, py), font_scale=0.5, color=color)
+                pass
 
 class Draw:
     def __init__(self):
@@ -204,4 +209,7 @@ class Draw:
         for frame in shared_data.get_other_tfs():
             self.drawFrames.drawFrame(image, frame, image_center)
 
-        self.drawMarkers.drawMarkers(image, shared_data.get_markers(), image_center)
+        markers_list = shared_data.get_markers()
+        if markers_list:
+            self.drawMarkers.drawMarkers(image, markers_list, image_center)
+        
