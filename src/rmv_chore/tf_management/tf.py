@@ -6,17 +6,24 @@ from tf_management.graph import Graph, FrameDrawingInfo, TransformUtils
 from geometry_msgs.msg import  Transform, Pose
 from utils.timer_log import TimerLogger
 import tf_transformations as tf
+from threading import Thread, RLock
+from time import sleep
 
-class TFManager:
+class TFManager(Thread):
     def __init__(self, node: Node, buffer_timeout: float, cache_duration: float = 3.0) -> None:
         """
         Gestionnaire pour la transformation TF avec structures avancées.
         """
+        super().__init__()
         self.node = node
         self.timer_logger = TimerLogger(self.node, 5.0)
 
+        self._lock_graph = RLock()
+        self._lock_main_frame = RLock()
+        self.__running = True
 
         self.main_frame_name = ""
+        self.all_transform_from_main_frame : dict[str,FrameDrawingInfo] =  {}
         self.start_time = self.node.get_clock().now()
         self.frame_index = 0
         self.count = 0
@@ -34,16 +41,30 @@ class TFManager:
         Callback pour les transformations dynamiques.
         """
         for transform in msg.transforms:
-            self.graph.addEdgeFromTransformStamped(transform,expiration= self.expiration_duration, static=False)
+            with self._lock_graph:
+                self.graph.addEdgeFromTransformStamped(transform,expiration= self.expiration_duration, static=False)
 
     def tfStaticCallback(self, msg: TFMessage) -> None:
         """
         Callback pour les transformations statiques.
         """
         for transform in msg.transforms:
-            self.graph.addEdgeFromTransformStamped(transform, static=True)
+            with self._lock_graph:
+                self.graph.addEdgeFromTransformStamped(transform, static=True)
 
-
+    def run(self):
+        
+        while self.__running:
+            self.updateAllTransformsFrom()
+            self.new_main_frame = False
+            sleep(0.1)
+    def updateAllTransformsFrom(self) -> None:
+        """
+        Met à jour les transformations à partir du frame principal.
+        """
+        with self._lock_main_frame and self._lock_graph:
+            all_info: List[FrameDrawingInfo] = self.graph.calculateAllTransformsFrom(self.main_frame_name)
+            self.all_transform_from_main_frame =  {frame.name: frame for frame in all_info}
     def getAvailableTFNames(self) -> List[str]:
         """
         Récupère la liste des noms des TF disponibles à partir des buffers statiques et des relations parent-enfant.
@@ -51,8 +72,8 @@ class TFManager:
         Returns:
             List[str]: Liste des noms des frames disponibles.
         """
-        available_frames = self.graph.getAllFrames()
-        # if  available_frames: print(available_frames)
+        with self._lock_graph:
+            available_frames = self.graph.getAllFrames()
         return available_frames
 
 
@@ -62,20 +83,22 @@ class TFManager:
         Set the main TF frame to the first available frame if ones.
         """
         frames = self.getAvailableTFNames()
-        if frames:
-            self.main_frame_name = frames[self.count]
-            
+        with self._lock_main_frame:
+            if frames and frames[self.count] != self.main_frame_name:
+                self.main_frame_name = frames[self.count]
+                
         if self.node.get_clock().now() - self.start_time > Duration(seconds=5) and frames:
             self.start_time = self.node.get_clock().now()
             self.count = (self.count +1) % len(frames)
-        
+            
     def getMainFrame(self)->str:
         """
         Get the main TF frame for the TF manager.
         Returns:
             str: The name of the main TF frame.
         """
-        return self.main_frame_name
+        with self._lock_main_frame:
+            return self.main_frame_name
     
     def equalMainFrame(self, frame: str)->bool:
         """
@@ -85,29 +108,16 @@ class TFManager:
         Returns:
             bool: True if the frame is the main frame, False otherwise.
         """
-        return frame == self.main_frame_name
+        with self._lock_main_frame:
+            return frame == self.main_frame_name
     
-    def getRelativeTransforms(self) -> List[FrameDrawingInfo]:
+    def getAllTransformsFromMainFrame(self)->dict[str,FrameDrawingInfo]:
         """
-        Get the relative transforms of the main frame with respect to the other frames.
-
+        Get all the transforms from the main frame.
         Returns:
-            List[FrameDrawingInfo]: List of relative frame information.
+            dict[str,FrameDrawingInfo]: The dictionary of transforms from the main frame.
         """
-        return self.timer_logger.logExecutionTime(self._getRelativeTransforms)()
-    
-
-    def _getRelativeTransforms(self) -> List[FrameDrawingInfo]:
-        """
-        Optimized method to get all relative transforms from the main frame.
-
-        Returns:
-            List[FrameDrawingInfo]: List of relative frame information.
-        """
-        if not self.main_frame_name:
-            return []
-
-        return self.graph.calculateAllTransformsFrom(self.main_frame_name)
-    
+        with self._lock_main_frame:
+            return self.all_transform_from_main_frame
 
    

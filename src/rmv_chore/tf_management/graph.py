@@ -51,24 +51,26 @@ class Graph(Thread):
             static (bool): Whether the transform is static or not.
             expiration (float): The expiration duration in seconds.
         """
-        with self._lock:
-            header_frame_id = transformStamped.header.frame_id
-            child_frame_id = transformStamped.child_frame_id
-            transform = transformStamped.transform
+        header_frame_id = transformStamped.header.frame_id
+        child_frame_id = transformStamped.child_frame_id
+        transform = transformStamped.transform
 
-            # Add forward transform
-            transform_rmv = TransformRMV(header_frame_id, child_frame_id, transform)
-            transform_rmv.setStatic(static)
-            transform_rmv.setExpirationDuration(expiration)
-            transform_rmv.setInitialDirection(True)
+        # Add forward transform
+        transform_rmv = TransformRMV(header_frame_id, child_frame_id, transform)
+        transform_rmv.setStatic(static)
+        transform_rmv.setExpirationDuration(expiration)
+        transform_rmv.setInitialDirection(True)
+        
+        # Add inverse transform
+        inverse_transform = TransformUtils.invertTransform(transform)
+        inverse_transform_rmv = TransformRMV(child_frame_id, header_frame_id, inverse_transform)
+        inverse_transform_rmv.setStatic(static)
+        inverse_transform_rmv.setExpirationDuration(expiration)
+        inverse_transform_rmv.setInitialDirection(False)
+            
+        with self._lock:
             self._graph.add_edge(header_frame_id, child_frame_id, object=transform_rmv)
 
-            # Add inverse transform
-            inverse_transform = TransformUtils.invertTransform(transform)
-            inverse_transform_rmv = TransformRMV(child_frame_id, header_frame_id, inverse_transform)
-            inverse_transform_rmv.setStatic(static)
-            inverse_transform_rmv.setExpirationDuration(expiration)
-            inverse_transform_rmv.setInitialDirection(False)
             self._graph.add_edge(child_frame_id, header_frame_id, object=inverse_transform_rmv)
 
     def _removeExpiredEdges(self):

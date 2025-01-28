@@ -9,6 +9,7 @@ import time
 from visualization.draw import Draw
 from rmv_chore.shared_data import SharedData
 from parameters.params import VisualizationParams
+from rclpy.qos import qos_profile_sensor_data
 
 class Visualization():
     def __init__(self, node: Node, params: VisualizationParams, shared_data: SharedData):

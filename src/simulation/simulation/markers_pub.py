@@ -4,7 +4,7 @@ from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 from builtin_interfaces.msg import Duration
 import random
-
+import math
 
 class MarkersPublisher(Node):
     def __init__(self):
@@ -32,10 +32,11 @@ class MarkersPublisher(Node):
         marker.action = Marker.ADD
         marker.pose.position.x = 2.0
         marker.pose.position.y = -1.0
-        marker.pose.orientation.x = 0.0
+        angle_rad = math.radians(30)  # Conversion de 30° en radians
+        marker.pose.orientation.x = math.sin(angle_rad / 2)
         marker.pose.orientation.y = 0.0
         marker.pose.orientation.z = 0.0
-        marker.pose.orientation.w = 1.0
+        marker.pose.orientation.w = math.cos(angle_rad / 2)
         marker.scale.x = 0.5
         marker.scale.y = 0.5
         marker.scale.z = 0.5
