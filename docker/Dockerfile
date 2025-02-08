@@ -18,7 +18,8 @@ RUN pip3 install --no-cache-dir \
     pyyaml \
     opencv-python-headless \
     transforms3d \
-    networkx==2.5
+    networkx==2.5 \
+    pylint
 
 # Non-root user for development
 ARG USERNAME=devuser
