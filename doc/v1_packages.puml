@@ -1,0 +1,53 @@
+@startuml packages
+set namespaceSeparator none
+package "markers_management.markers" as markers_management.markers #77AADD {
+}
+package "markers_management.markers_manager" as markers_management.markers_manager #77AADD {
+}
+package "parameters.params" as parameters.params #99DDFF {
+}
+package "rmv_chore.main" as rmv_chore.main #44BB99 {
+}
+package "rmv_chore.rmv_chore" as rmv_chore.rmv_chore #44BB99 {
+}
+package "rmv_chore.shared_data" as rmv_chore.shared_data #44BB99 {
+}
+package "tf_management.graph" as tf_management.graph #BBCC33 {
+}
+package "tf_management.tf" as tf_management.tf #BBCC33 {
+}
+package "tf_management.transform" as tf_management.transform #BBCC33 {
+}
+package "topic_management.subscription_manager" as topic_management.subscription_manager #AAAA00 {
+}
+package "topic_management.topic_manager" as topic_management.topic_manager #AAAA00 {
+}
+package "utils.timer_log" as utils.timer_log #EEDD88 {
+}
+package "visualization.visualization" as visualization.visualization #EE8866 {
+}
+markers_management.markers_manager --> markers_management.markers
+markers_management.markers_manager --> parameters.params
+markers_management.markers_manager --> rmv_chore.shared_data
+markers_management.markers_manager --> tf_management.tf
+markers_management.markers_manager --> topic_management.topic_manager
+rmv_chore.main --> rmv_chore.rmv_chore
+rmv_chore.rmv_chore --> markers_management.markers
+rmv_chore.rmv_chore --> markers_management.markers_manager
+rmv_chore.rmv_chore --> parameters.params
+rmv_chore.rmv_chore --> rmv_chore.shared_data
+rmv_chore.rmv_chore --> tf_management.tf
+rmv_chore.rmv_chore --> utils.timer_log
+rmv_chore.rmv_chore --> visualization.visualization
+rmv_chore.shared_data --> markers_management.markers
+rmv_chore.shared_data --> tf_management.graph
+tf_management.graph --> tf_management.transform
+tf_management.tf --> tf_management.graph
+tf_management.tf --> utils.timer_log
+topic_management.topic_manager --> topic_management.subscription_manager
+topic_management.topic_manager --> utils.timer_log
+visualization.visualization --> markers_management.markers
+visualization.visualization --> parameters.params
+visualization.visualization --> rmv_chore.shared_data
+visualization.visualization --> tf_management.graph
+@enduml

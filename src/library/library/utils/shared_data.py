@@ -1,8 +1,8 @@
 import threading
-from typing import Dict, List
-from markers_management.markers import MarkerRmv
+from ..markers_management.markers import MarkerRmv
+from ..tf_management.tf import FrameDrawingInfo
+from typing import List, Dict
 from geometry_msgs.msg import TransformStamped
-from tf_management.graph import FrameDrawingInfo
 class SharedData:
     def __init__(self):
         self.main_tf : FrameDrawingInfo = FrameDrawingInfo()   # Stocke la transformation principale

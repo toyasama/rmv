@@ -1,17 +1,15 @@
-from markers_management.markers import MarkerRmv
+from .markers import MarkerRmv
 from visualization_msgs.msg import Marker
 from typing import List
 from rclpy.node import Node
-from topic_management.topic_manager import TopicManager
-from parameters.params import RmvParams , VisualizationParams
+from ..topic_management.topic_manager import TopicManager
+from ..parameters.params import RmvParams , VisualizationParams
 from threading import Thread, RLock
 from time import sleep
-from tf_management.tf import TFManager
-from rmv_chore.shared_data import SharedData
+from ..tf_management.tf import TFManager, FrameDrawingInfo, TransformUtils
+from ..utils.shared_data import SharedData
 from std_msgs.msg import ColorRGBA
-from tf_management.tf import  FrameDrawingInfo, TransformUtils
 import copy
-from rmv_chore.shared_data import SharedData
 
 class MarkersManager(Thread):
     def __init__(self,node, rmv_params: RmvParams)->None:

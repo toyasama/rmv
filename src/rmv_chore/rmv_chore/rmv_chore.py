@@ -1,17 +1,9 @@
 
 from rclpy.node import Node
-from markers_management.markers_manager import MarkersManager,dataManager
-from markers_management.markers import MarkerRmv
-from utils.timer_log import TimerLogger
-from pprint import pprint
-import math
+
+from library import dataManager, VisualizationParams, TimerLogger, SharedData
 from visualization.visualization import Visualization
 from std_msgs.msg import ColorRGBA
-from typing import Tuple, List
-from tf_management.tf import  FrameDrawingInfo, TransformUtils
-from rmv_chore.shared_data import SharedData
-from parameters.params import RmvParams , VisualizationParams
-import copy
 class RmvChore:
     def __init__(self)->None:
         """
@@ -25,7 +17,7 @@ class RmvChore:
         
         self.timer_test = self.node.create_timer(1/visu_params.fps, self._updateMarkersCallBack)
         
-        self.timer_logger = TimerLogger(self.node, 5.0)
+        self.timer_logger : TimerLogger = TimerLogger(self.node, 5.0)
         self.data_manager = dataManager(self.node)
         self.data_manager.start()
         

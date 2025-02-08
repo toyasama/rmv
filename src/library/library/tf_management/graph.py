@@ -6,7 +6,7 @@ from threading import Thread, RLock
 import tf_transformations as tf
 import networkx as nx
 
-from tf_management.transform import TransformRMV, TransformUtils
+from .transform import TransformRMV, TransformUtils
 
 class FrameDrawingInfo:
     def __init__(self):

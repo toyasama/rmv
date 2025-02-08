@@ -1,8 +1,8 @@
 from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
 from typing import Type, Tuple, List, Dict
-from utils.timer_log import TimerLogger
-from topic_management.subscription_manager import SubscriptionManager
+from ..utils.timer_log import TimerLogger
+from .subscription_manager import SubscriptionManager
 
 class TopicManager:
     def __init__(self, node: Node, process_period:float) -> None:

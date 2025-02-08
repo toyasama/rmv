@@ -10,7 +10,7 @@ DIRECTORIES=(
     "rmv_chore/visualization/"
 )
 
-pyreverse -o puml  --all-associated  "${DIRECTORIES[@]}"
+pyreverse -o puml  --all-ancestors --filter-mode ALL --colorized --no-standalone "${DIRECTORIES[@]}"
 
 if [ $? -eq 0 ]; then
     echo "Diagramme UML généré avec succès !"
