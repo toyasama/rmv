@@ -9,14 +9,27 @@ import networkx as nx
 from tf_management.transform import TransformRMV, TransformUtils
 
 class FrameDrawingInfo:
-    def __init__(self, frame: str, transform: Transform, start_connection: Transform, end_connection: Transform, opacity: float, valid: bool ):
+    def __init__(self):
         """Information for drawing a TF."""
-        self.name = frame
-        self.transform = transform
-        self.opacity = opacity
-        self.start_connection = start_connection
-        self.end_connection = end_connection
-        self.valid = valid
+        self.name : str = ""
+        self.transform : Transform = Transform()
+        self.opacity : float = 0.0
+        self.start_connection : Transform = Transform()
+        self.end_connection : Transform = Transform()
+        self.valid : bool = False
+    @classmethod
+    def fill(cls, frame: str, transform: Transform, start_connection: Transform, end_connection: Transform, opacity: float, valid: bool ):
+        """
+        Fill the FrameDrawingInfo object with the provided data.
+        """
+        obj = cls()
+        obj.name = frame
+        obj.transform = transform
+        obj.start_connection = start_connection
+        obj.end_connection = end_connection
+        obj.opacity = opacity
+        obj.valid = valid
+        return obj
 
 class Graph(Thread):
     def __init__(self):
@@ -136,7 +149,7 @@ class Graph(Thread):
                     end_connection = TransformUtils.combineTransforms(current_transform, inverse_transform)
                     start_connection = current_transform
                     
-                transforms.append(FrameDrawingInfo(
+                transforms.append(FrameDrawingInfo().fill(
                     frame=target_frame,
                     transform=current_transform,
                     start_connection=start_connection,

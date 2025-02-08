@@ -35,6 +35,7 @@ class MarkerRmv:
         self.header = marker.header
         self.type = marker.type
         self.reception_time = current_time
+        self.points = marker.points
 
     def getType(self):
         return self.type

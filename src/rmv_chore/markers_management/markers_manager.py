@@ -101,6 +101,7 @@ class dataManager(Thread):
         self.markers_manager.start()        
         self.tf_manager = TFManager(self.node, rmv_params.TIMEOUT_TF_BUFFER)
         self.tf_manager.start()
+        self.main_frame_frame_info: FrameDrawingInfo = FrameDrawingInfo()
     
     def run(self):
         """
@@ -110,13 +111,13 @@ class dataManager(Thread):
             
             markers_rmv = copy.deepcopy(self.markers_manager.getMarkersList())
             self.tf_manager.setDefaultMainFrame() 
-            self.main_frame = self.tf_manager.getMainFrame()
+            self.main_frame_frame_info  = self.tf_manager.getMainFrame()
             
             relative_transforms:dict[str,FrameDrawingInfo] = self.tf_manager.getAllTransformsFromMainFrame()
             filtered_markers = self._filterMarkersInMainTfFrame(markers_rmv, relative_transforms)
             with self.__shared_data_lock:
                 self._shared_data.update_markers(filtered_markers)
-                self._shared_data.update_main_tf(self.main_frame)
+                self._shared_data.update_main_tf(self.main_frame_frame_info)
                 self._shared_data.update_other_tfs( list(relative_transforms.values()))
             sleep(1/self.visu_params.fps)
     
@@ -142,8 +143,9 @@ class dataManager(Thread):
         filtered_markers = []
         for marker in markers_rmv:
             frame = marker.getTfFrame()
-
-            if self.main_frame == frame :
+            if not self.main_frame_frame_info.name:
+                break
+            if self.main_frame_frame_info.name == frame :
                 filtered_markers.append(marker)
                 continue
 
@@ -151,7 +153,7 @@ class dataManager(Thread):
                 transform = relative_transforms[frame].transform
                 transformed_pose = TransformUtils.transformPoseToParentFrame(marker.getPose(), transform)
                 if transformed_pose:
-                    marker.setFrameId(self.main_frame)
+                    marker.setFrameId(self.main_frame_frame_info.name)
                     marker.setPose(transformed_pose)
                     filtered_markers.append(marker)
             # else:
