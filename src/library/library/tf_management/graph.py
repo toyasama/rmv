@@ -1,14 +1,11 @@
 import time
 import networkx as nx
-from collections import defaultdict
-from typing import Dict, Optional, List
+from typing import  Optional, List
 from threading import Thread, RLock
-from dataclasses import dataclass
 from geometry_msgs.msg import Transform, TransformStamped
-import tf_transformations as tf
-from ..utils.draw import FrameDrawingInfo
-from .transform import TransformRMV, TransformUtils
-
+from .frame_rmv import FrameRMV
+from .transform_utils import  TransformUtils
+from .transform_rmv import TransformRMV
 
 class BaseGraph:
     """Base class managing a directed graph with thread-safe operations."""
@@ -32,7 +29,7 @@ class BaseGraph:
     def _removeExpiredEdges(self):
         """Removes all expired edges from the graph."""
         with self._graph_lock:
-            expired_edges = [(u, v) for u, v, data in self._graph.edges(data=True) if data["frameInfo"].isExpired()]
+            expired_edges = [(u, v) for u, v, data in self._graph.edges(data=True) if data["frameInfo"].isExpired]
             for u, v in expired_edges:
                 self._graph.remove_edge(u, v)
 
@@ -47,14 +44,14 @@ class TransformGraph(BaseGraph):
         child_frame = transform_stamped.child_frame_id
         transform = transform_stamped.transform
 
-        forward_transform = TransformRMV(parent_frame, child_frame, transform)
-        forward_transform.setStatic(static)
-        forward_transform.setExpirationDuration(expiration)
+        forward_transform  = TransformRMV(parent_frame, child_frame, transform)
+        forward_transform.isStatic = static
+        forward_transform.expiration_duration =expiration
 
         inverse_transform = TransformUtils.invertTransform(transform)
         inverse_transform_rmv = TransformRMV(child_frame, parent_frame, inverse_transform)
-        inverse_transform_rmv.setStatic(static)
-        inverse_transform_rmv.setExpirationDuration(expiration)
+        inverse_transform_rmv.isStatic = static
+        inverse_transform_rmv.expiration_duration =expiration
 
         with self._graph_lock:
             self._graph.add_edge(parent_frame, child_frame, frameInfo=forward_transform)
@@ -66,7 +63,7 @@ class TransformGraph(BaseGraph):
             edge_data = self._graph.get_edge_data(parent, child)
             return edge_data["frameInfo"].getTransform() if edge_data else None
 
-    def evaluateTransformsFrom(self, main_frame: str) -> List[FrameDrawingInfo]:
+    def evaluateTransformsFrom(self, main_frame: str) -> List[FrameRMV]:
         """Evaluate all relative transforms from a main frame."""
         with self._graph_lock:
             if main_frame not in self._graph:
@@ -88,7 +85,7 @@ class TransformGraph(BaseGraph):
 
             return transforms
 
-    def _computeTransformInfo(self, path: List[str]) -> FrameDrawingInfo:
+    def _computeTransformInfo(self, path: List[str]) -> FrameRMV:
         """Compute the combined transform for a given path."""
         current_transform = None
         min_opacity = 1.0
@@ -98,8 +95,8 @@ class TransformGraph(BaseGraph):
             parent, child = path[i], path[i + 1]
             edge_data:TransformRMV = self._graph[parent][child]["frameInfo"]
 
-            combined_validity &= edge_data.isValid()
-            min_opacity = min(min_opacity, edge_data.getOpacity())
+            combined_validity &= edge_data.isValid
+            min_opacity = min(min_opacity, edge_data.opacity)
 
             transform = edge_data.getTransform()
             current_transform = TransformUtils.combineTransforms(current_transform, transform) if current_transform else transform
@@ -112,7 +109,7 @@ class TransformGraph(BaseGraph):
             inverse_transform = self.getTransform(child, parent)
             end_connection = TransformUtils.combineTransforms(current_transform, inverse_transform)
             start_connection = current_transform
-        return FrameDrawingInfo().fill(
+        return FrameRMV().fill(
             frame=path[-1],
             transform=current_transform,
             start_connection=start_connection,

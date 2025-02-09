@@ -2,7 +2,7 @@ from typing import List
 from rclpy.node import Node
 from rclpy.time import Duration
 from tf2_msgs.msg import TFMessage
-from .graph import TransformGraph, FrameDrawingInfo
+from .graph import TransformGraph, FrameRMV
 from geometry_msgs.msg import  Transform
 from ..utils.timer_log import TimerLogger
 
@@ -16,7 +16,7 @@ class TFManager(TransformGraph):
         self.timer_logger = TimerLogger(self.node, 2.0)
 
         self.main_frame_name = ""
-        self.all_transform_from_main_frame : dict[str,FrameDrawingInfo] =  {}
+        self.all_transform_from_main_frame : dict[str,FrameRMV] =  {}
         self.start_time = self.node.get_clock().now()
         self.frame_index = 0
         self.count = 0
@@ -45,7 +45,7 @@ class TFManager(TransformGraph):
         """
         Met à jour les transformations à partir du frame principal.
         """
-        all_info: List[FrameDrawingInfo] = self.evaluateTransformsFrom(self.main_frame_name)
+        all_info: List[FrameRMV] = self.evaluateTransformsFrom(self.main_frame_name)
         self.all_transform_from_main_frame =  {frame.name: frame for frame in all_info}
             
     def getAvailableTFNames(self) -> List[str]:
@@ -70,13 +70,13 @@ class TFManager(TransformGraph):
             self.start_time = self.node.get_clock().now()
             self.count = (self.count +1) % len(frames)
             
-    def getMainFrame(self)->FrameDrawingInfo:
+    def getMainFrame(self)->FrameRMV:
         """
         Get the main TF frame for the TF manager.
         Returns:
             str: The name of the main TF frame.
         """
-        return FrameDrawingInfo().fill(
+        return FrameRMV().fill(
                 frame=self.main_frame_name,
                 transform=Transform(),
                 start_connection=None,
@@ -95,11 +95,11 @@ class TFManager(TransformGraph):
         """
         return frame == self.main_frame_name
     
-    def getAllTransformsFromMainFrame(self)->dict[str,FrameDrawingInfo]:
+    def getAllTransformsFromMainFrame(self)->dict[str,FrameRMV]:
         """
         Get all the transforms from the main frame.
         Returns:
-            dict[str,FrameDrawingInfo]: The dictionary of transforms from the main frame.
+            dict[str,FrameRMV]: The dictionary of transforms from the main frame.
         """
         return self.all_transform_from_main_frame
 

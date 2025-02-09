@@ -9,116 +9,112 @@ from rclpy.node import Node
 from threading import Thread, RLock
 from time import sleep
 
-class MarkerTypes(Enum):
-    """
-    Enum for marker types.
-    """
-    ARROW = 0
-    CUBE = 1
-    SPHERE = 2
-    CYLINDER = 3
-    LINE_STRIP = 4
-    LINE_LIST = 5
-    CUBE_LIST = 6
-    SPHERE_LIST = 7
-    POINTS = 8
-    TEXT_VIEW_FACING = 9
-    MESH_RESOURCE = 10
-    TRIANGLE_LIST = 11
 
 
-    
-class MarkerRmv:
-    def __init__(self,  marker: Marker, current_time: Time):
+class MarkerRmvBase:
+    """Classe de base pour les objets Marker, gérant les aspects communs."""
+    def __init__(self, marker: Marker, reception_time: Time):
         """
-        Constructor for the MarkerRmv class with namespace and ID.
+        Initialise un objet MarkerRmv de base.
 
         Args:
-            marker (Marker): The marker to be added.
+            marker (Marker): L'objet marker ROS.
+            reception_time (Time): Le moment où le marker a été reçu.
         """
-        self.identifier = (marker.ns, marker.id) 
-        self.pose = marker.pose
-        self.scale = marker.scale
-        self.color = marker.color
-        self.lifetime = marker.lifetime
-        self.header = marker.header
-        self.type = marker.type
-        self.reception_time = current_time
-        self.points = marker.points
-
-    def getType(self):
-        return self.type
-
-
-    def getIdentifier(self) -> tuple:
-        """
-        Get the marker's identifier.
-
-        Returns:
-            tuple: A tuple containing the namespace and ID.
-        """
-        return self.identifier
-    
-    def getTfFrame(self) -> str:
-        """
-        Get the TF frame of the marker.
-
-        Returns:
-            str: The TF frame of the marker.
-        """
-        return self.header.frame_id
-    
-    def getPose(self) -> Pose:
-        """
-        Get the pose of the marker.
-
-        Returns:
-            Pose: The pose of the marker.
-        """
-        return self.pose
-    
-    def setFrameId(self, frame_id: str) -> None:
-        """
-        Set the TF frame of the marker.
-
-        Args:
-            frame_id (str): The new TF frame.
-        """
-        self.header.frame_id = frame_id
+        self._marker = marker  # Conserver l'objet Marker d'origine
+        self._reception_time = reception_time  # Reception time
+        self._modified_pose = None  # Pose modifiable temporaire (initialement None)
         
-    def setPose(self, pose: Pose) -> None:
+    @property
+    def identifier(self) -> tuple:
+        """Retourne l'identifiant unique du marker (namespace, ID)."""
+        return self._marker.ns, self._marker.id
+
+    @property
+    def pose(self) -> Pose:
+        """Retourne la pose d'origine du marker."""
+        return self._marker.pose
+    
+    @property
+    def modified_pose(self) -> Pose:
+        """Retourne la pose modifiée du marker (si définie)."""
+        return self._modified_pose if self._modified_pose else self.pose
+    
+    @modified_pose.setter
+    def modified_pose(self, new_pose: Pose) -> None:
+        """Permet de modifier la pose modifiée du marker."""
+        self._modified_pose = new_pose
+
+    @property
+    def scale(self):
+        """Retourne la taille (scale) du marker."""
+        return self._marker.scale
+    
+    @property
+    def color(self):
+        """Retourne la couleur du marker."""
+        return self._marker.color
+    
+    @property
+    def lifetime(self):
+        """Retourne la durée de vie du marker."""
+        return self._marker.lifetime
+
+    @property
+    def frame_id(self) -> str:
+        """Retourne le cadre de référence (TF frame)."""
+        return self._marker.header.frame_id
+    
+    @frame_id.setter
+    def frame_id(self, frame_id: str):
+        """Modifie le cadre de référence (TF frame)."""
+        self._marker.header.frame_id = frame_id
+
+    @property
+    def points(self):
+        """Retourne les points associés au marker."""
+        return self._marker.points
+
+    @property
+    def type(self):
+        """Retourne le type du marker."""
+        return self._marker.type
+
+    def getTransform(self):
+        """Retourne la transformation du marker."""
+        return self._marker.pose
+
+    def isExpired(self, current_time: Time) -> bool:
+        """Vérifie si le marker a expiré."""
+        expiration_time = self.lifetime.sec + (self.lifetime.nanosec * 1e-9) + self._reception_time.sec + (self._reception_time.nanosec * 1e-9)
+        current_time_in_seconds = current_time.sec + (current_time.nanosec * 1e-9)
+        return current_time_in_seconds > expiration_time
+
+
+class MarkerRmv(MarkerRmvBase):
+    """Classe spécifique à la gestion des markers avec identifiant et gestion du temps."""
+    
+    def __init__(self, marker: Marker, current_time: Time):
         """
-        Set the pose of the marker.
+        Initialise un MarkerRmv.
 
         Args:
-            pose (Pose): The new pose.
+            marker (Marker): Le marker à ajouter.
+            current_time (Time): Le temps actuel du message.
         """
-        self.pose = pose
+        super().__init__(marker, current_time)  # Héritage de MarkerRmvBase
 
     def equals(self, other_marker: 'MarkerRmv') -> bool:
         """
-        Check if another marker has the same identifier.
+        Compare deux markers pour voir s'ils sont égaux (basé sur leur identifiant).
 
         Args:
-            other_marker (MarkerRmv): Another marker to compare.
+            other_marker (MarkerRmv): Un autre marker à comparer.
 
         Returns:
-            bool: True if the identifiers match, False otherwise.
+            bool: True si les identifiants sont égaux, False sinon.
         """
-        return self.identifier == other_marker.getIdentifier()
-
-    def isExpired(self, current_time: Time) -> bool:
-        """
-        Check if a marker is expired.
-
-        Args:
-            current_time (Time): The current time.
-
-        Returns:
-            bool: True if the marker is expired, False otherwise.
-        """
-        return current_time.sec + (current_time.nanosec * 1e-9) > self.lifetime.sec + (self.lifetime.nanosec * 1e-9) + self.reception_time.sec + (self.reception_time.nanosec * 1e-9)
-    
+        return self.identifier == other_marker.identifier
 
 class BaseMessage(ABC):
     def __init__(self, message_type: Type[Marker | MarkerArray]):
@@ -163,11 +159,11 @@ class MarkersHandler:
         time = self.__node.get_clock().now().to_msg()
         if isinstance(marker, Marker):
             with self.__lock_markers_list:
-                self.__markers[MarkerMessage.process(marker, time).getIdentifier()] = MarkerMessage.process(marker, time)
+                self.__markers[MarkerMessage.process(marker, time).identifier] = MarkerMessage.process(marker, time)
         elif isinstance(marker, MarkerArray):
             for marker in MarkerArrayMessage.process(marker, time):
                 with self.__lock_markers_list:
-                    self.__markers[marker.getIdentifier()] = marker
+                    self.__markers[marker.identifier] = marker
             
     @property
     def markers(self) ->List[MarkerRmv]:

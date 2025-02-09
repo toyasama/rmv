@@ -6,8 +6,8 @@ from ..topic_management.topic_manager import TopicManager
 from ..parameters.params import RmvParams , VisualizationParams
 from threading import Thread, RLock
 from time import sleep
-from ..tf_management.tf import TFManager, FrameDrawingInfo
-from ..tf_management.transform import TransformUtils
+from ..tf_management.tf import TFManager, FrameRMV
+from ..tf_management.transform_utils import TransformUtils
 from ..utils.shared_data import SharedData
 from ..utils.timer_log import TimerLogger
 from std_msgs.msg import ColorRGBA
@@ -15,7 +15,7 @@ import copy
 
     
 
-class dataManager(Thread):
+class dataManager():
     def __init__(self, node: Node)-> None:
         """
         Constructor for the DataManager class.
@@ -23,54 +23,46 @@ class dataManager(Thread):
             node (Node): The ROS2 node.
         """
         super().__init__()
-        self.__shared_data_lock = RLock()
-        self.__running = True
         self._shared_data = SharedData()
-        rmv_params: RmvParams = RmvParams()
-        background_color = ColorRGBA(r=0.1, g=0.1, b=0.1, a=1.0)
-        self.visu_params = VisualizationParams(width=800, height=600, fps=30, background_color=background_color)
-        
-        self.node:Node = node
-        self.markers_manager: TopicManager= TopicManager(self.node, rmv_params.UPDATE_MARKERS_PROCESS_PERIOD)
+        self.markers_manager: TopicManager= TopicManager(node, 0.1)
        
-        self.tf_manager = TFManager(self.node)
-        self.main_frame_frame_info: FrameDrawingInfo = FrameDrawingInfo()
-        self.timer_logger_tf = TimerLogger(self.node, 2.0)
+        self.tf_manager = TFManager(node)
+        self.main_frame_frame_info: FrameRMV = FrameRMV()
+        self.timer_logger_tf = TimerLogger(node, 2.0)
     
-    def run(self):
+    def processData(self):
         """
         Run the data manager thread.
         """
-        while self.__running:
-            self.timer_logger_tf.logExecutionTime(self.process)()
-            sleep(1/self.visu_params.fps)
-    def process(self):
+        self.timer_logger_tf.logExecutionTime(self._process)()
+    
+    def _process(self):
         """
         Process the data manager.
         """
-        markers_rmv = copy.deepcopy(self.markers_manager.markers)
+        markers_rmv = self.markers_manager.markers
         self.tf_manager.updateAllTransformsFrom()
         self.tf_manager.setDefaultMainFrame() 
         self.main_frame_frame_info  = self.tf_manager.getMainFrame()
         
-        relative_transforms:dict[str,FrameDrawingInfo] = self.tf_manager.getAllTransformsFromMainFrame()
+        relative_transforms:dict[str,FrameRMV] = self.tf_manager.getAllTransformsFromMainFrame()
         filtered_markers = self._filterMarkersInMainTfFrame(markers_rmv, relative_transforms)
-        with self.__shared_data_lock:
-            self._shared_data.update_markers(filtered_markers)
-            self._shared_data.update_main_tf(self.main_frame_frame_info)
-            self._shared_data.update_other_tfs( list(relative_transforms.values()))
-        
+
+        self._shared_data.update_markers(filtered_markers)
+        self._shared_data.update_main_tf(self.main_frame_frame_info)
+        self._shared_data.update_other_tfs( list(relative_transforms.values()))
     
-    def getSharedData(self)->SharedData:
+    @property
+    def shared_data(self)->SharedData:
         """
         Get the shared data object.
+
         Returns:
             SharedData: The shared data object.
         """
-        with self.__shared_data_lock:
-            return self._shared_data
+        return self._shared_data
     
-    def _filterMarkersInMainTfFrame(self, markers_rmv: List[MarkerRmv], relative_transforms:dict[str,FrameDrawingInfo]) -> List[MarkerRmv]:
+    def _filterMarkersInMainTfFrame(self, markers_rmv: List[MarkerRmv], relative_transforms:dict[str,FrameRMV]) -> List[MarkerRmv]:
         """
         Update the markers list to the main TF frame, filtering based on valid transforms.
 
@@ -82,21 +74,18 @@ class dataManager(Thread):
         """
         filtered_markers = []
         for marker in markers_rmv:
-            frame = marker.getTfFrame()
+            frame = marker.frame_id
             if not self.main_frame_frame_info.name:
                 break
             if self.main_frame_frame_info.name == frame :
+                marker.modified_pose = marker.pose
                 filtered_markers.append(marker)
                 continue
 
             if frame in relative_transforms :
                 transform = relative_transforms[frame].transform
-                transformed_pose = TransformUtils.transformPoseToParentFrame(marker.getPose(), transform)
+                transformed_pose = TransformUtils.transformPoseToParentFrame(marker.pose, transform)
                 if transformed_pose:
-                    marker.new_frame_id = self.main_frame_frame_info.name
-                    marker.pose_in_new_frame = transformed_pose
+                    marker.modified_pose = transformed_pose
                     filtered_markers.append(marker)
-            # else:
-            #     print("not valid")
-            
         return filtered_markers

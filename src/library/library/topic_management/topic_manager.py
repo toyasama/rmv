@@ -12,7 +12,7 @@ class TopicManager(SubscriptionManager):
             node (Node): The node object.
         """
         SubscriptionManager.__init__(self, node)
-        node.create_timer(process_period, self.__findMarkersTopicsCallBack) 
+        node.create_timer(1, self.__findMarkersTopicsCallBack) 
         node.get_logger().info("TopicManager created successfully")
         self.timer_logger_2: TimerLogger = TimerLogger( node, 5.0)
 

@@ -6,7 +6,7 @@ import tf_transformations as tf
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from typing import Tuple
-from library import VisualizationParams, FrameDrawingInfo, MarkerRmv, SharedData
+from library import VisualizationParams, FrameRMV, MarkerRmv, SharedData
 from dataclasses import dataclass
 from visualization_msgs.msg import Marker
 from typing import List
@@ -23,7 +23,7 @@ class FramesPosition:
 class DrawingUtils:
     
     @staticmethod
-    def drawFrame(image: np.ndarray, frames_position: FramesPosition,  frame_info: FrameDrawingInfo):
+    def drawFrame(image: np.ndarray, frames_position: FramesPosition,  frame_info: FrameRMV):
         """
         Draws a reference frame with a small circle and optional label.
         """
@@ -103,7 +103,7 @@ class CameraManager:
         and point projection between world and camera coordinates.
         """
         self.params = params
-        self.camera_distance = 5.0  
+        self.camera_distance = 8.0  
         self.fov = np.deg2rad(60)  
         self.K = self.computeIntrinsicMatrix()
     
@@ -155,7 +155,7 @@ class CameraManager:
 class CubeTransformer:
     @staticmethod
     def get_transformed_corners(marker) -> np.ndarray:
-        cube_pose = marker.pose
+        cube_pose = marker.modified_pose
         scale = np.array([marker.scale.x , marker.scale.y , marker.scale.z ]) / 2  
 
         local_corners = np.array([
@@ -213,11 +213,11 @@ class SphereDrawer:
         radius_z = marker.scale.z / 2
 
         rotation_matrix = tf.quaternion_matrix([
-            marker.pose.orientation.x, marker.pose.orientation.y,
-            marker.pose.orientation.z, marker.pose.orientation.w
+            marker.modified_pose.orientation.x, marker.modified_pose.orientation.y,
+            marker.modified_pose.orientation.z, marker.modified_pose.orientation.w
         ])[:3, :3]
 
-        position = np.array([marker.pose.position.x, marker.pose.position.y, marker.pose.position.z])
+        position = np.array([marker.modified_pose.position.x, marker.modified_pose.position.y, marker.modified_pose.position.z])
 
         local_axes = np.array([
             [radius_x, 0, 0],  # Axe X
@@ -255,17 +255,17 @@ class SphereDrawer:
 
 class CylinderDrawer:
     @staticmethod
-    def draw_cylinder(image: np.ndarray, marker, camera_manager) -> None:
+    def draw_cylinder(image: np.ndarray, marker:MarkerRmv, camera_manager) -> None:
         height = marker.scale.z
         radius_x = marker.scale.x / 2
         radius_y = marker.scale.y / 2
 
         rotation_matrix = tf.quaternion_matrix([
-            marker.pose.orientation.x, marker.pose.orientation.y,
-            marker.pose.orientation.z, marker.pose.orientation.w
+            marker.modified_pose.orientation.x, marker.modified_pose.orientation.y,
+            marker.modified_pose.orientation.z, marker.modified_pose.orientation.w
         ])[:3, :3]
 
-        position = np.array([marker.pose.position.x, marker.pose.position.y, marker.pose.position.z])
+        position = np.array([marker.modified_pose.position.x, marker.modified_pose.position.y, marker.modified_pose.position.z])
 
         top_center = position + rotation_matrix @ np.array([0, 0, height / 2])
         bottom_center = position + rotation_matrix @ np.array([0, 0, -height / 2])
@@ -310,7 +310,7 @@ class CylinderDrawer:
 
 class ArrowDrawer:
     @staticmethod
-    def draw_arrow(image: np.ndarray, marker, camera_manager) -> None:
+    def draw_arrow(image: np.ndarray, marker:MarkerRmv, camera_manager:CameraManager) -> None:
         if len(marker.points) >= 2:
             # Mode Start/End
             start = np.array([marker.points[0].x, marker.points[0].y, marker.points[0].z])
@@ -320,8 +320,8 @@ class ArrowDrawer:
             head_length = marker.scale.z if marker.scale.z > 0 else np.linalg.norm(end - start) * 0.2
         else:
             # Mode Position/Orientation
-            start = np.array([marker.pose.position.x, marker.pose.position.y, marker.pose.position.z])
-            quaternion = [marker.pose.orientation.x, marker.pose.orientation.y, marker.pose.orientation.z, marker.pose.orientation.w]
+            start = np.array([marker.modified_pose.position.x, marker.modified_pose.position.y, marker.modified_pose.position.z])
+            quaternion = [marker.modified_pose.orientation.x, marker.modified_pose.orientation.y, marker.modified_pose.orientation.z, marker.modified_pose.orientation.w]
             rotation_matrix = tf.quaternion_matrix(quaternion)[:3, :3]
             end = start + rotation_matrix @ np.array([marker.scale.x, 0, 0])
             shaft_diameter = marker.scale.y
@@ -372,17 +372,17 @@ class LineStripDrawer:
         if len(marker.points) < 2:
             return  # Pas assez de points pour former une ligne
 
-        # Extraire la matrice de rotation à partir du quaternion de la pose
+        # Extraire la matrice de rotation à partir du quaternion de la modified_pose
         quaternion = [
-            marker.pose.orientation.x, marker.pose.orientation.y,
-            marker.pose.orientation.z, marker.pose.orientation.w
+            marker.modified_pose.orientation.x, marker.modified_pose.orientation.y,
+            marker.modified_pose.orientation.z, marker.modified_pose.orientation.w
         ]
         rotation_matrix = tf.quaternion_matrix(quaternion)[:3, :3]
 
-        # Extraire la position de la pose
-        position = np.array([marker.pose.position.x, marker.pose.position.y, marker.pose.position.z])
+        # Extraire la position de la modified_pose
+        position = np.array([marker.modified_pose.position.x, marker.modified_pose.position.y, marker.modified_pose.position.z])
 
-        # Transformer tous les points en tenant compte de la pose
+        # Transformer tous les points en tenant compte de la modified_pose
         transformed_points = [position + rotation_matrix @ np.array([p.x, p.y, p.z]) for p in marker.points]
 
         # Calculer la transformation vers la caméra
@@ -479,18 +479,17 @@ class Visualization(CameraManager):
         """
         super().__init__(params)
         self.node = node
-        self.shared_data = SharedData()
         self.bridge = CvBridge()
         self.publisher = self.node.create_publisher(Image, "visualization_image", qos_profile_sensor_data)
-        self.draw_grid = True
+        self.draw_grid = False
         self.grid_spacing = 0.5
         self.axes_distance = 0.1
         self.image = self.createNewImage()
 
-    def generateCameraView(self):
+    def generateCameraView(self, shared_data: SharedData):
         """Generates an image centered on `main_tf` with a grid in the background."""
         image = self.createNewImage()
-        main_tf = self.shared_data.get_main_tf()
+        main_tf = shared_data.get_main_tf()
         if not main_tf.name:
             return image  # No reference point found
 
@@ -511,7 +510,7 @@ class Visualization(CameraManager):
         if proj_main:
             DrawingUtils.drawFrame(image, frames_position, main_tf)
 
-        for frame in self.shared_data.get_other_tfs():
+        for frame in shared_data.get_other_tfs():
             frame_pos = np.array([frame.transform.translation.x, frame.transform.translation.y, frame.transform.translation.z])
             frame_pos_x_end = frame_pos + np.array([self.axes_distance, 0, 0])
             frame_pos_y_end = frame_pos + np.array([0,self.axes_distance, 0])
@@ -529,7 +528,7 @@ class Visualization(CameraManager):
             if proj:
                 DrawingUtils.drawFrame(image, frames_position, frame)
 
-        for marker in self.shared_data.get_markers():
+        for marker in shared_data.get_markers():
             match marker.type:
                 case  Marker.CUBE:
                     DrawMarkers.drawCube(image, marker, self)
@@ -550,9 +549,9 @@ class Visualization(CameraManager):
         self.node.get_logger().info(f"Point: {x}, {y}")
         return 0 <= x < self.params.width and 0 <= y < self.params.height
 
-    def visualize(self):
+    def visualize(self, shared_data: SharedData):
         """Updates and publishes the image."""
-        self.image = self.generateCameraView()
+        self.image = self.generateCameraView(shared_data)
         ros_image = self.bridge.cv2_to_imgmsg(self.image, encoding="bgr8")
         self.publisher.publish(ros_image)
 

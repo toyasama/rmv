@@ -1,10 +1,10 @@
 
 from rclpy.node import Node
 
-from library import dataManager, VisualizationParams, TimerLogger, SharedData
+from library import dataManager, VisualizationParams, TimerLogger
 from visualization.visualization import Visualization
 from std_msgs.msg import ColorRGBA
-from threading import Thread, Lock
+from threading import Thread
 from time import sleep
 class RmvChore:
     def __init__(self)->None:
@@ -16,13 +16,13 @@ class RmvChore:
         background_color = ColorRGBA(r=0.1, g=0.1, b=0.1, a=1.0)
         self.visu_params = VisualizationParams(width=800, height=600, fps=30, background_color=background_color)
         
+        self.visualization = Visualization(self.node, self.visu_params)
         self.timer_logger : TimerLogger = TimerLogger(self.node, 2.0)
         self.timer_logger2 : TimerLogger = TimerLogger(self.node, 2.0)
+        self.timer_logger_loop : TimerLogger = TimerLogger(self.node, 2.0)
         self.data_manager = dataManager(self.node)
-        self.data_manager.start()
         self._is_running = True
         self.thread = Thread(target=self._updateMarkers, daemon=True)
-        self.visualization = Visualization(self.node, self.visu_params)
         self.thread.start()
         
         print("Node rmv_chore created successfully")
@@ -37,25 +37,16 @@ class RmvChore:
         Method to update the markers list and push filtered markers to the queue.
         """
         while self._is_running:
-            self.timer_logger2.logExecutionTime(self.shareData)()
-            self.timer_logger.logExecutionTime(self.visualization.visualize)()
+            self.timer_logger_loop.logExecutionTime(self.loop)()
             sleep(0.1)
         
-    def shareData(self)->SharedData:
+    def loop(self)->None:
         """
-        Method to get the shared data object.
-        Returns:
-            SharedData: The shared data object.
+        Method to run the node.
         """
-        
-        shared_data = self.data_manager.getSharedData()
-        self.visualization.shared_data.update_main_tf(shared_data.get_main_tf())
-        self.visualization.shared_data.update_other_tfs(shared_data.get_other_tfs())
-        self.visualization.shared_data.update_markers(shared_data.get_markers())
-        self.timer_logger.logExecutionTime(self.visualization.visualize)() 
-        
-        
-   
+        self.timer_logger2.logExecutionTime(self.data_manager.run)()
+        self.timer_logger.logExecutionTime(self.visualization.visualize)(self.data_manager.shared_data)
+            
         
     def getNode(self)->Node:
         """

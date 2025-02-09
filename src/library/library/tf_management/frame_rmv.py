@@ -1,7 +1,7 @@
 from typing import List
 from geometry_msgs.msg import Transform
 
-class FrameDrawingInfo:
+class FrameRMV:
     def __init__(self):
         """Information for drawing a TF."""
         self.name : str = ""
@@ -13,7 +13,7 @@ class FrameDrawingInfo:
     @classmethod
     def fill(cls, frame: str, transform: Transform, start_connection: Transform, end_connection: Transform, opacity: float, valid: bool ):
         """
-        Fill the FrameDrawingInfo object with the provided data.
+        Fill the FrameRMV object with the provided data.
         """
         obj = cls()
         obj.name = frame

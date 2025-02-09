@@ -13,7 +13,7 @@ class "CameraManager" as visualization.visualization.CameraManager #EE8866 {
   projectToImage(point_camera: np.ndarray)
   worldToCamera(point: np.ndarray, T_camera_world)
 }
-class "FrameDrawingInfo" as tf_management.graph.FrameDrawingInfo #BBCC33 {
+class "FrameRMV" as tf_management.graph.FrameRMV #BBCC33 {
   end_connection : Transform
   name : str
   opacity : float
@@ -30,7 +30,7 @@ class "Graph" as tf_management.graph.Graph #BBCC33 {
   __init__()
   _removeExpiredEdges()
   addEdgeFromTransformStamped(transformStamped: TransformStamped, static: bool, expiration: float)
-  calculateAllTransformsFrom(main_frame: str) -> List[FrameDrawingInfo]
+  calculateAllTransformsFrom(main_frame: str) -> List[FrameRMV]
   getAllFrames() -> List[str]
   getTransform(parent: str, child: str) -> Optional[Transform]
   run()
@@ -65,14 +65,14 @@ class "RmvChore" as rmv_chore.rmv_chore.RmvChore #44BB99 {
 class "SharedData" as rmv_chore.shared_data.SharedData #44BB99 {
   main_tf
   markers : List[MarkerRmv]
-  other_tfs : Dict[str, TransformStamped], List[FrameDrawingInfo]
+  other_tfs : Dict[str, TransformStamped], List[FrameRMV]
   __init__()
-  get_main_tf() -> FrameDrawingInfo
+  get_main_tf() -> FrameRMV
   get_markers()
-  get_other_tfs() -> List[FrameDrawingInfo]
-  update_main_tf(tf: FrameDrawingInfo)
+  get_other_tfs() -> List[FrameRMV]
+  update_main_tf(tf: FrameRMV)
   update_markers(markers: List[MarkerRmv])
-  update_other_tfs(tfs: List[FrameDrawingInfo])
+  update_other_tfs(tfs: List[FrameRMV])
 }
 class "SubscriptionManager" as topic_management.subscription_manager.SubscriptionManager #AAAA00 {
   node : Node
@@ -87,7 +87,7 @@ class "TFManager" as tf_management.tf.TFManager #BBCC33 {
   __running : bool
   _lock_graph : _Lock
   _lock_main_frame : _Lock
-  all_transform_from_main_frame : dict[str, FrameDrawingInfo]
+  all_transform_from_main_frame : dict[str, FrameRMV]
   count : int
   expiration_duration : float
   frame_index : int
@@ -99,9 +99,9 @@ class "TFManager" as tf_management.tf.TFManager #BBCC33 {
   timer_logger
   __init__(node: Node, buffer_timeout: float, cache_duration: float) -> None
   equalMainFrame(frame: str) -> bool
-  getAllTransformsFromMainFrame() -> dict[str, FrameDrawingInfo]
+  getAllTransformsFromMainFrame() -> dict[str, FrameRMV]
   getAvailableTFNames() -> List[str]
-  getMainFrame() -> FrameDrawingInfo
+  getMainFrame() -> FrameRMV
   run()
   setDefaultMainFrame() -> None
   tfCallback(msg: TFMessage) -> None
@@ -169,7 +169,7 @@ class "dataManager" as markers_management.markers_manager.dataManager #77AADD {
   tf_manager
   visu_params
   __init__(node: Node) -> None
-  _filterMarkersInMainTfFrame(markers_rmv: List[MarkerRmv], relative_transforms: dict[str, FrameDrawingInfo]) -> List[MarkerRmv]
+  _filterMarkersInMainTfFrame(markers_rmv: List[MarkerRmv], relative_transforms: dict[str, FrameRMV]) -> List[MarkerRmv]
   getSharedData() -> SharedData
   run()
 }
@@ -179,9 +179,9 @@ markers_management.markers_manager.dataManager --* rmv_chore.rmv_chore.RmvChore 
 parameters.params.VisualizationParams --* markers_management.markers_manager.dataManager : visu_params
 rmv_chore.shared_data.SharedData --* markers_management.markers_manager.dataManager : _shared_data
 rmv_chore.shared_data.SharedData --* rmv_chore.rmv_chore.RmvChore : shared_data
-tf_management.graph.FrameDrawingInfo --* markers_management.markers_manager.dataManager : main_frame_frame_info
-tf_management.graph.FrameDrawingInfo --* markers_management.markers_manager.dataManager : main_frame_frame_info
-tf_management.graph.FrameDrawingInfo --* rmv_chore.shared_data.SharedData : main_tf
+tf_management.graph.FrameRMV --* markers_management.markers_manager.dataManager : main_frame_frame_info
+tf_management.graph.FrameRMV --* markers_management.markers_manager.dataManager : main_frame_frame_info
+tf_management.graph.FrameRMV --* rmv_chore.shared_data.SharedData : main_tf
 tf_management.graph.Graph --* tf_management.tf.TFManager : graph
 tf_management.tf.TFManager --* markers_management.markers_manager.dataManager : tf_manager
 topic_management.subscription_manager.SubscriptionManager --* topic_management.topic_manager.TopicManager : subscription_manager

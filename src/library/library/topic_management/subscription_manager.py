@@ -3,7 +3,7 @@ from rclpy.qos import qos_profile_sensor_data
 from rclpy.subscription import Subscription
 from visualization_msgs.msg import Marker, MarkerArray
 from typing import Type, List, Dict
-from ..markers_management.markers import MarkerRmv, MarkersHandler
+from ..markers_management.markers import  MarkersHandler
 from ..utils.timer_log import TimerLogger
 
 class SubscriptionManager(MarkersHandler):
@@ -26,7 +26,6 @@ class SubscriptionManager(MarkersHandler):
             list: List of topic names.
         """
         return list(self.__subscriptions.keys())
-    
     
     def subscribe(self, topic: str, topic_type: str):
         """
