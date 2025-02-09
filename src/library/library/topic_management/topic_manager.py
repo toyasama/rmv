@@ -1,42 +1,40 @@
 from rclpy.node import Node
 from visualization_msgs.msg import Marker, MarkerArray
-from typing import Type, Tuple, List, Dict
-from ..utils.timer_log import TimerLogger
+from typing import Type, Tuple, List
 from .subscription_manager import SubscriptionManager
+from ..utils.timer_log import TimerLogger
 
-class TopicManager:
+class TopicManager(SubscriptionManager):
     def __init__(self, node: Node, process_period:float) -> None:
         """
         Constructor for the TopicManager class.
         Args:
             node (Node): The node object.
         """
-        self.node = node
-        self.markers_list: List[Type[Marker|MarkerArray]] = []
-        self.subscription_manager = SubscriptionManager(node)
-        self.timer_logger = TimerLogger(node, 5.0)
-        self.node.create_timer(process_period, self.findMarkersTopicsCallBack) 
-        self.node.get_logger().info("TopicManager created successfully")
+        SubscriptionManager.__init__(self, node)
+        node.create_timer(process_period, self.__findMarkersTopicsCallBack) 
+        node.get_logger().info("TopicManager created successfully")
+        self.timer_logger_2: TimerLogger = TimerLogger( node, 5.0)
 
-    def findMarkersTopicsCallBack(self) -> None:
+    def __findMarkersTopicsCallBack(self) -> None:
         """
         Discover topics related to markers, subscribe to new ones, and remove obsolete subscriptions.
         """
-        self.timer_logger.logExecutionTime(self._findMarkersTopics)()
+        self.timer_logger_2.logExecutionTime(self.__findMarkersTopics)()
         
-    def _findMarkersTopics(self):
+    def __findMarkersTopics(self):
         """
         Discover topics related to markers, subscribe to new ones, and remove obsolete subscriptions.
         This method will be decorated to log execution time.
         """
-        topics_and_types = self.node.get_topic_names_and_types()
+        topics_and_types = self._node.get_topic_names_and_types()
         expected_types = ["visualization_msgs/msg/Marker", "visualization_msgs/msg/MarkerArray"]
-        filtered_topics = self._filterAndValidateTopics(topics_and_types, expected_types)
+        filtered_topics = self._filter(topics_and_types, expected_types)
 
         self._removeUnpublishedTopics(filtered_topics)
         self._subscribeToTopics(filtered_topics)
 
-    def _filterAndValidateTopics(
+    def _filter(
         self, topics: List[Tuple[str, List[str]]], expected_types: List[str]
     ) -> List[Tuple[str, str]]:
         """
@@ -60,7 +58,7 @@ class TopicManager:
             filtered_topics (list): The list of currently available marker topics.
         """
         for topic, topic_type in filtered_topics:
-            self.subscription_manager.subscribe(topic, topic_type, self._markerCallback)
+            self.subscribe(topic, topic_type)
 
     def _removeUnpublishedTopics(self, filtered_topics: List[Tuple[str, str]]) -> None:
         """
@@ -69,9 +67,9 @@ class TopicManager:
             filtered_topics (list): The list of currently available marker topics.
         """
         activeTopics = {topic for topic, _ in filtered_topics}
-        for subscribed_topic in self.subscription_manager.activeTopics():
+        for subscribed_topic in self.active_topics:
             if subscribed_topic not in activeTopics:
-                self.subscription_manager.unsubscribe(subscribed_topic)
+                self.unsubscribe(subscribed_topic)
 
     def _hasMatchingType(self, received_types: List[str], expected_types: List[str]) -> str | None:
         """
@@ -92,30 +90,9 @@ class TopicManager:
         Returns:
             bool: True if the topic has at least one publisher, False otherwise.
         """
-        return self.node.count_publishers(topic) > 0
+        return self._node.count_publishers(topic) > 0
 
-    def _markerCallback(self, msg: Marker | MarkerArray) -> None:
-        """
-        Callback for receiving marker messages.
-        Args:
-            msg (Marker | MarkerArray): The received message.
-        """
-        self.markers_list.append(msg)
         
-    def extractMarkersList(self) -> List[Type[Marker|MarkerArray]]:
-        """
-        Get the list of markers and clear the internal list.
-        Returns:
-            list: The list of markers.
-        """
-        marker_list = self.markers_list
-        self.markers_list = []
-        return marker_list
     
         
-    def cleanMarkersList(self) -> None:
-        """
-        Clean the list of markers.
-        """
-        self.markers_list = []
         

@@ -1,117 +1,78 @@
 import time
+import networkx as nx
 from collections import defaultdict
 from typing import Dict, Optional, List
-from geometry_msgs.msg import Transform, TransformStamped
 from threading import Thread, RLock
+from dataclasses import dataclass
+from geometry_msgs.msg import Transform, TransformStamped
 import tf_transformations as tf
-import networkx as nx
-
+from ..utils.draw import FrameDrawingInfo
 from .transform import TransformRMV, TransformUtils
 
-class FrameDrawingInfo:
-    def __init__(self):
-        """Information for drawing a TF."""
-        self.name : str = ""
-        self.transform : Transform = Transform()
-        self.opacity : float = 0.0
-        self.start_connection : Transform = Transform()
-        self.end_connection : Transform = Transform()
-        self.valid : bool = False
-    @classmethod
-    def fill(cls, frame: str, transform: Transform, start_connection: Transform, end_connection: Transform, opacity: float, valid: bool ):
-        """
-        Fill the FrameDrawingInfo object with the provided data.
-        """
-        obj = cls()
-        obj.name = frame
-        obj.transform = transform
-        obj.start_connection = start_connection
-        obj.end_connection = end_connection
-        obj.opacity = opacity
-        obj.valid = valid
-        return obj
 
-class Graph(Thread):
+class BaseGraph:
+    """Base class managing a directed graph with thread-safe operations."""
     def __init__(self):
-        """
-        Represents a graph of frames connected by transforms.
-        """
-        super().__init__()
-        self._graph = nx.DiGraph()  # Directed graph from networkx
-        self._lock = RLock()
+        self._graph = nx.DiGraph()
+        self._graph_lock = RLock()
         self._running = True
+        self._thread = Thread(target=self._removePeriodically, daemon=True)
+        self._thread.start()
 
-    def run(self):
-        """
-        Periodically cleans up expired edges in the graph.
-        """
-        while self._running:
-            with self._lock:
-                self._removeExpiredEdges()
-            time.sleep(0.1)
-
-    def stop(self):
-        """Stop the background thread."""
+    def __del__(self):
         self._running = False
-        self.join()
+        self._thread.join()
 
-    def addEdgeFromTransformStamped(self, transformStamped: TransformStamped, static: bool = False, expiration: float = 0):
-        """
-        Add a transform to the graph based on a TransformStamped message.
-
-        Args:
-            transformStamped (TransformStamped): The transform message.
-            static (bool): Whether the transform is static or not.
-            expiration (float): The expiration duration in seconds.
-        """
-        header_frame_id = transformStamped.header.frame_id
-        child_frame_id = transformStamped.child_frame_id
-        transform = transformStamped.transform
-
-        # Add forward transform
-        transform_rmv = TransformRMV(header_frame_id, child_frame_id, transform)
-        transform_rmv.setStatic(static)
-        transform_rmv.setExpirationDuration(expiration)
-        transform_rmv.setInitialDirection(True)
-        
-        # Add inverse transform
-        inverse_transform = TransformUtils.invertTransform(transform)
-        inverse_transform_rmv = TransformRMV(child_frame_id, header_frame_id, inverse_transform)
-        inverse_transform_rmv.setStatic(static)
-        inverse_transform_rmv.setExpirationDuration(expiration)
-        inverse_transform_rmv.setInitialDirection(False)
-            
-        with self._lock:
-            self._graph.add_edge(header_frame_id, child_frame_id, object=transform_rmv)
-
-            self._graph.add_edge(child_frame_id, header_frame_id, object=inverse_transform_rmv)
+    def _removePeriodically(self):
+        """Periodically removes expired edges."""
+        while self._running:
+            self._removeExpiredEdges()
+            time.sleep(1)
 
     def _removeExpiredEdges(self):
-        """Remove all expired transforms from the graph."""
-        expired_edges = []
-        for u, v, data in self._graph.edges(data=True):
-            if data['object'].isExpired():
-                expired_edges.append((u, v))
+        """Removes all expired edges from the graph."""
+        with self._graph_lock:
+            expired_edges = [(u, v) for u, v, data in self._graph.edges(data=True) if data["frameInfo"].isExpired()]
+            for u, v in expired_edges:
+                self._graph.remove_edge(u, v)
 
-        for u, v in expired_edges:
-            self._graph.remove_edge(u, v)
-
-    def calculateAllTransformsFrom(self, main_frame: str) -> List[FrameDrawingInfo]:
+class TransformGraph(BaseGraph):
+    """Graph that manages frame transforms."""
+    
+    def addTransform(self, transform_stamped: TransformStamped, static: bool = False, expiration: float = 0):
         """
-        Calculate all relative transforms from a main frame to other frames.
-
-        Args:
-            main_frame (str): The main frame from which to calculate transforms.
-
-        Returns:
-            List[FrameDrawingInfo]: List of relative frame information.
+        Add a transform to the graph from a TransformStamped message.
         """
-        with self._lock:
+        parent_frame = transform_stamped.header.frame_id
+        child_frame = transform_stamped.child_frame_id
+        transform = transform_stamped.transform
+
+        forward_transform = TransformRMV(parent_frame, child_frame, transform)
+        forward_transform.setStatic(static)
+        forward_transform.setExpirationDuration(expiration)
+
+        inverse_transform = TransformUtils.invertTransform(transform)
+        inverse_transform_rmv = TransformRMV(child_frame, parent_frame, inverse_transform)
+        inverse_transform_rmv.setStatic(static)
+        inverse_transform_rmv.setExpirationDuration(expiration)
+
+        with self._graph_lock:
+            self._graph.add_edge(parent_frame, child_frame, frameInfo=forward_transform)
+            self._graph.add_edge(child_frame, parent_frame, frameInfo=inverse_transform_rmv)
+
+    def getTransform(self, parent: str, child: str) -> Optional[Transform]:
+        """Retrieve the transform between two frames."""
+        with self._graph_lock:
+            edge_data = self._graph.get_edge_data(parent, child)
+            return edge_data["frameInfo"].getTransform() if edge_data else None
+
+    def evaluateTransformsFrom(self, main_frame: str) -> List[FrameDrawingInfo]:
+        """Evaluate all relative transforms from a main frame."""
+        with self._graph_lock:
             if main_frame not in self._graph:
                 return []
 
             transforms = []
-
             for target_frame in self._graph.nodes:
                 if target_frame == main_frame:
                     continue
@@ -121,54 +82,47 @@ class Graph(Thread):
                 except nx.NetworkXNoPath:
                     continue
 
-                current_transform = None
-                min_opacity = 1.0
-                start_connection = None
-                end_connection = None
-                combined_validity = True
-
-                for i in range(len(path) - 1):
-                    parent, child = path[i], path[i + 1]
-                    edge_data = self._graph[parent][child]['object']
-                    transform = edge_data.getTransform()
-                    combined_validity = edge_data.isValid() and combined_validity
-
-                    min_opacity = min(min_opacity, edge_data.getOpacity())
-
-                    if current_transform is None:
-                        current_transform = transform
-                    else:
-                        current_transform = TransformUtils.combineTransforms(current_transform, transform)
-
-                if edge_data._initial_direction:
-                    inverse_transform = self.getTransform(child, parent)
-                    start_connection = TransformUtils.combineTransforms(current_transform, inverse_transform)
-                    end_connection = current_transform
-                else:
-                    inverse_transform = self.getTransform(child, parent)
-                    end_connection = TransformUtils.combineTransforms(current_transform, inverse_transform)
-                    start_connection = current_transform
-                    
-                transforms.append(FrameDrawingInfo().fill(
-                    frame=target_frame,
-                    transform=current_transform,
-                    start_connection=start_connection,
-                    end_connection=end_connection,
-                    opacity=min_opacity,
-                    valid=combined_validity
-                ))
+                transform_info = self._computeTransformInfo(path)
+                transform_info.frame = target_frame
+                transforms.append(transform_info)
 
             return transforms
 
-    def getAllFrames(self) -> List[str]:
-        """Retrieve all frames in the graph."""
-        with self._lock:
-            return list(self._graph.nodes)
+    def _computeTransformInfo(self, path: List[str]) -> FrameDrawingInfo:
+        """Compute the combined transform for a given path."""
+        current_transform = None
+        min_opacity = 1.0
+        combined_validity = True
 
-    def getTransform(self, parent: str, child: str) -> Optional[Transform]:
-        """Retrieve the transform between two frames."""
-        with self._lock:
-            edge_data = self._graph.get_edge_data(parent, child, default=None)
-            if edge_data:
-                return edge_data['object'].getTransform()
-            return None
+        for i in range(len(path) - 1):
+            parent, child = path[i], path[i + 1]
+            edge_data:TransformRMV = self._graph[parent][child]["frameInfo"]
+
+            combined_validity &= edge_data.isValid()
+            min_opacity = min(min_opacity, edge_data.getOpacity())
+
+            transform = edge_data.getTransform()
+            current_transform = TransformUtils.combineTransforms(current_transform, transform) if current_transform else transform
+
+        if edge_data._initial_direction:
+            inverse_transform = self.getTransform(child, parent)
+            start_connection = TransformUtils.combineTransforms(current_transform, inverse_transform)
+            end_connection = current_transform
+        else:
+            inverse_transform = self.getTransform(child, parent)
+            end_connection = TransformUtils.combineTransforms(current_transform, inverse_transform)
+            start_connection = current_transform
+        return FrameDrawingInfo().fill(
+            frame=path[-1],
+            transform=current_transform,
+            start_connection=start_connection,
+            end_connection=end_connection,
+            opacity=min_opacity,
+            valid=combined_validity
+        )
+
+    @property
+    def frames(self) -> List[str]:
+        """Retrieve all frames in the graph."""
+        with self._graph_lock:
+            return list(self._graph.nodes)

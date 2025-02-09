@@ -1,0 +1,29 @@
+@startuml packages
+set namespaceSeparator none
+package "library.markers_management.markers" as library.markers_management.markers #77AADD {
+}
+package "library.markers_management.markers_manager" as library.markers_management.markers_manager #77AADD {
+}
+package "library.tf_management.graph" as library.tf_management.graph #99DDFF {
+}
+package "library.tf_management.tf" as library.tf_management.tf #99DDFF {
+}
+package "library.tf_management.transform" as library.tf_management.transform #99DDFF {
+}
+package "library.topic_management.subscription_manager" as library.topic_management.subscription_manager #44BB99 {
+}
+package "library.topic_management.topic_manager" as library.topic_management.topic_manager #44BB99 {
+}
+package "rmv_chore.main" as rmv_chore.main #BBCC33 {
+}
+package "rmv_chore.rmv_chore" as rmv_chore.rmv_chore #BBCC33 {
+}
+package "visualization.visualization" as visualization.visualization #AAAA00 {
+}
+library.markers_management.markers_manager --> library.markers_management.markers
+library.tf_management.graph --> library.tf_management.transform
+library.tf_management.tf --> library.tf_management.graph
+library.topic_management.topic_manager --> library.topic_management.subscription_manager
+rmv_chore.main --> rmv_chore.rmv_chore
+rmv_chore.rmv_chore --> visualization.visualization
+@enduml

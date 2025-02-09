@@ -473,13 +473,13 @@ class GridDrawer:
 
 
 class Visualization(CameraManager):
-    def __init__(self, node: "Node", params: "VisualizationParams", shared_data: "SharedData"):
+    def __init__(self, node: "Node", params: "VisualizationParams"):
         """
         Initializes the visualization object, inheriting from CameraManager, with an option to draw a grid.
         """
         super().__init__(params)
         self.node = node
-        self.shared_data = shared_data
+        self.shared_data = SharedData()
         self.bridge = CvBridge()
         self.publisher = self.node.create_publisher(Image, "visualization_image", qos_profile_sensor_data)
         self.draw_grid = True
@@ -550,7 +550,7 @@ class Visualization(CameraManager):
         self.node.get_logger().info(f"Point: {x}, {y}")
         return 0 <= x < self.params.width and 0 <= y < self.params.height
 
-    def run(self):
+    def visualize(self):
         """Updates and publishes the image."""
         self.image = self.generateCameraView()
         ros_image = self.bridge.cv2_to_imgmsg(self.image, encoding="bgr8")

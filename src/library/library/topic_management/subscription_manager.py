@@ -1,19 +1,34 @@
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from rclpy.subscription import Subscription
 from visualization_msgs.msg import Marker, MarkerArray
 from typing import Type, List, Dict
+from ..markers_management.markers import MarkerRmv, MarkersHandler
+from ..utils.timer_log import TimerLogger
 
-class SubscriptionManager:
+class SubscriptionManager(MarkersHandler):
     def __init__(self, node: Node):
         """
-        Manager for handling topic subscriptions.
+        Manager for handling topic __subscriptions.
         Args:
             node (Node): The ROS2 node object.
         """
-        self.node = node
-        self.subscriptions: Dict[str, Subscription] = {}
+        MarkersHandler.__init__(self, node)
+        self._node = node
+        self.__subscriptions: Dict[str, Subscription] = {}
+        self.timer_logger : TimerLogger= TimerLogger( node, 5.0)
 
-    def subscribe(self, topic: str, topic_type: str, callback):
+    @property
+    def active_topics(self) -> List[str]:
+        """
+        Get a list of currently active topics.
+        Returns:
+            list: List of topic names.
+        """
+        return list(self.__subscriptions.keys())
+    
+    
+    def subscribe(self, topic: str, topic_type: str):
         """
         Subscribe to a new topic if not already subscribed.
         Args:
@@ -21,10 +36,18 @@ class SubscriptionManager:
             topic_type (str): ROS2 message type string.
             callback: Callback function for the topic.
         """
-        if topic not in self.subscriptions:
-            self.node.get_logger().info(f"Subscribing to: {topic} ({topic_type})")
+        if topic not in self.__subscriptions:
+            self._node.get_logger().info(f"Subscribing to: {topic} ({topic_type})")
             message_type = self._getMessageType(topic_type)
-            self.subscriptions[topic] = self.node.create_subscription(message_type, topic, callback, 10)
+            self.__subscriptions[topic] = self._node.create_subscription(message_type, topic, self.callback, qos_profile_sensor_data)
+
+    def callback(self, message: Marker | MarkerArray):
+        """
+        Callback function for the subscribed topic.
+        Args:
+            message (Marker | MarkerArray): The received message.
+        """
+        self.timer_logger.logExecutionTime(self.addMarker)(message)
 
     def unsubscribe(self, topic: str):
         """
@@ -32,17 +55,10 @@ class SubscriptionManager:
         Args:
             topic (str): Topic name.
         """
-        if topic in self.subscriptions:
-            self.node.get_logger().info(f"Unsubscribing from: {topic}")
-            del self.subscriptions[topic]
+        if topic in self.__subscriptions:
+            self._node.get_logger().info(f"Unsubscribing from: {topic}")
+            del self.__subscriptions[topic]
 
-    def activeTopics(self) -> List[str]:
-        """
-        Get a list of currently active topics.
-        Returns:
-            list: List of topic names.
-        """
-        return list(self.subscriptions.keys())
 
     def _getMessageType(self, type_string: str) -> Type[Marker | MarkerArray]:
         """
@@ -63,4 +79,3 @@ class SubscriptionManager:
             return message_type_map[message_type]
         else:
             raise ValueError(f"Unsupported type: {message_type}")
-

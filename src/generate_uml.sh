@@ -2,12 +2,12 @@
 
 DIRECTORIES=(
     "rmv_chore/rmv_chore/"
-    "rmv_chore/markers_management/"
-    "rmv_chore/parameters/"
-    "rmv_chore/tf_management/"
-    "rmv_chore/topic_management/"
-    "rmv_chore/utils/"
     "rmv_chore/visualization/"
+    "library/markers_management/"
+    "library/parameters/"
+    "library/tf_management/"
+    "library/topic_management/"
+    "library/utils/"
 )
 
 pyreverse -o puml  --all-ancestors --filter-mode ALL --colorized --no-standalone "${DIRECTORIES[@]}"
