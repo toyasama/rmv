@@ -16,14 +16,14 @@ import copy
     
 
 class dataManager():
-    def __init__(self, node: Node)-> None:
+    def __init__(self, node: Node, shared_data:SharedData)-> None:
         """
         Constructor for the DataManager class.
         Args:
             node (Node): The ROS2 node.
         """
         super().__init__()
-        self._shared_data = SharedData()
+        self._shared_data = shared_data
         self.markers_manager: TopicManager= TopicManager(node, 0.1)
        
         self.tf_manager = TFManager(node)
@@ -34,7 +34,8 @@ class dataManager():
         """
         Run the data manager thread.
         """
-        self.timer_logger_tf.logExecutionTime(self._process)()
+        # self.timer_logger_tf.logExecutionTime(self._process)()
+        self._process()
     
     def _process(self):
         """

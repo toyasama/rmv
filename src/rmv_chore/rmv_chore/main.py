@@ -1,90 +1,60 @@
 import rclpy
+from threading import Thread, RLock
+from time import sleep, time
 from library import dataManager, VisualizationParams, TimerLogger
 from visualization.visualization import Visualization
 from std_msgs.msg import ColorRGBA
-from threading import Thread
-from time import sleep
-
-def create_rmv_chore_node():
-    """
-    Function to create and initialize the rmv_chore node and related components.
-    """
-    rclpy.init()
-
-    node = rclpy.create_node("rmv_chore", namespace="rmv")
-    
-    background_color = ColorRGBA(r=0.1, g=0.1, b=0.1, a=1.0)
-    visu_params = VisualizationParams(width=800, height=600, fps=30, background_color=background_color)
-    
-    visualization = Visualization(node, visu_params)
-    timer_logger = TimerLogger(node, 2.0)
-    timer_logger2 = TimerLogger(node, 2.0)
-    timer_logger_loop = TimerLogger(node, 2.0)
-    data_manager = dataManager(node)
-    
-    _is_running = True
-
-    def update_markers():
-        """
-        Method to update the markers list and push filtered markers to the queue.
-        """
-        while _is_running:
-            timer_logger_loop.logExecutionTime(loop)()
-            sleep(0.1)
-    
-    def loop():
-        """
-        Method to run the node.
-        """
-        timer_logger2.logExecutionTime(data_manager.run)()
-        timer_logger.logExecutionTime(visualization.visualize)(data_manager.shared_data)
-
-    thread = Thread(target=update_markers, daemon=True)
-    thread.start()
-
-    
-
+from library.utils.shared_data import SharedData
 def main():
     rclpy.init()
-
     node = rclpy.create_node("rmv_chore", namespace="rmv")
     
     background_color = ColorRGBA(r=0.1, g=0.1, b=0.1, a=1.0)
     visu_params = VisualizationParams(width=800, height=600, fps=30, background_color=background_color)
+    shared_data = SharedData()
+    visualization = Visualization(node, visu_params, shared_data)
+    data_manager = dataManager(node, shared_data)
     
-    visualization = Visualization(node, visu_params)
-    timer_logger = TimerLogger(node, 2.0)
-    timer_logger2 = TimerLogger(node, 2.0)
-    timer_logger_loop = TimerLogger(node, 2.0)
-    data_manager = dataManager(node)
-
+    running = True
+    
     def update_markers():
         """
-        Method to update the markers list and push filtered markers to the queue.
+        Met à jour la liste des marqueurs et les met en file d'attente après filtrage.
         """
-        while True:
-            try:
-                timer_logger_loop.logExecutionTime(loop)()
-                if not rclpy.ok():
-                    break
-                rclpy.spin_once(node)
-                
-            except KeyboardInterrupt:
-                break
+        while running:
+            rclpy.spin_once(node, timeout_sec=0.01)
             sleep(0.01)
+    
+    def processData():
+        """
+        Fonction exécutée en boucle pour traiter les données et les visualiser.
+        """
+        while running:
+            data_manager.processData()
+            sleep(0.01)
+    
+    def visualize():
+        while running:
+            visualization.visualize()
+            sleep(0.01)
+            
+    spinner_thread = Thread(target=update_markers, daemon=True)
+    data_thread = Thread(target=processData, daemon=True)
+    visu_thread = Thread(target=visualize, daemon=True)
+    
+    spinner_thread.start()
+    data_thread.start()
+    visu_thread.start()
+    
+    try:
+        spinner_thread.join()
+        data_thread.join()
+        visu_thread.join()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        running = False
         rclpy.shutdown()
-    
-    def loop():
-        """
-        Method to run the node.
-        """
-        timer_logger2.logExecutionTime(data_manager.processData)()
-        timer_logger.logExecutionTime(visualization.visualize)(data_manager.shared_data)
 
-    thread = Thread(target=update_markers, daemon=True)
-    thread.start()
-
-
-    
 if __name__ == "__main__":
     main()

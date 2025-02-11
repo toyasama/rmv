@@ -20,7 +20,7 @@ class TopicManager(SubscriptionManager):
         """
         Discover topics related to markers, subscribe to new ones, and remove obsolete subscriptions.
         """
-        self.timer_logger_2.logExecutionTime(self.__findMarkersTopics)()
+        self.__findMarkersTopics()
         
     def __findMarkersTopics(self):
         """

@@ -46,7 +46,8 @@ class SubscriptionManager(MarkersHandler):
         Args:
             message (Marker | MarkerArray): The received message.
         """
-        self.timer_logger.logExecutionTime(self.addMarker)(message)
+        self.addMarker(message)
+        # self.timer_logger.logExecutionTime(self.addMarker)(message)
 
     def unsubscribe(self, topic: str):
         """

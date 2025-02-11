@@ -32,14 +32,16 @@ class TFManager(TransformGraph):
         Callback pour les transformations dynamiques.
         """
         for transform in msg.transforms:
-            self.timer_logger.logExecutionTime(self.addTransform)(transform,expiration= self.expiration_duration, static=False)
+            self.addTransform(transform,expiration= self.expiration_duration, static=False)
+            # self.timer_logger.logExecutionTime(self.addTransform)(transform,expiration= self.expiration_duration, static=False)
 
     def tfStaticCallback(self, msg: TFMessage) -> None:
         """
         Callback pour les transformations statiques.
         """
         for transform in msg.transforms:
-            self.timer_logger.logExecutionTime(self.addTransform)(transform, static=True)
+            self.addTransform(transform, static=True)
+            # self.timer_logger.logExecutionTime(self.addTransform)(transform, static=True)
             
     def updateAllTransformsFrom(self) -> None:
         """

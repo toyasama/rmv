@@ -473,7 +473,7 @@ class GridDrawer:
 
 
 class Visualization(CameraManager):
-    def __init__(self, node: "Node", params: "VisualizationParams"):
+    def __init__(self, node: "Node", params: "VisualizationParams", shared_data: SharedData):
         """
         Initializes the visualization object, inheriting from CameraManager, with an option to draw a grid.
         """
@@ -481,15 +481,16 @@ class Visualization(CameraManager):
         self.node = node
         self.bridge = CvBridge()
         self.publisher = self.node.create_publisher(Image, "visualization_image", qos_profile_sensor_data)
-        self.draw_grid = False
+        self.draw_grid = True
         self.grid_spacing = 0.5
         self.axes_distance = 0.1
         self.image = self.createNewImage()
+        self.shared_data = shared_data
 
-    def generateCameraView(self, shared_data: SharedData):
+    def generateCameraView(self):
         """Generates an image centered on `main_tf` with a grid in the background."""
         image = self.createNewImage()
-        main_tf = shared_data.get_main_tf()
+        main_tf = self.shared_data.get_main_tf()
         if not main_tf.name:
             return image  # No reference point found
 
@@ -510,7 +511,7 @@ class Visualization(CameraManager):
         if proj_main:
             DrawingUtils.drawFrame(image, frames_position, main_tf)
 
-        for frame in shared_data.get_other_tfs():
+        for frame in self.shared_data.get_other_tfs():
             frame_pos = np.array([frame.transform.translation.x, frame.transform.translation.y, frame.transform.translation.z])
             frame_pos_x_end = frame_pos + np.array([self.axes_distance, 0, 0])
             frame_pos_y_end = frame_pos + np.array([0,self.axes_distance, 0])
@@ -528,7 +529,7 @@ class Visualization(CameraManager):
             if proj:
                 DrawingUtils.drawFrame(image, frames_position, frame)
 
-        for marker in shared_data.get_markers():
+        for marker in self.shared_data.get_markers():
             match marker.type:
                 case  Marker.CUBE:
                     DrawMarkers.drawCube(image, marker, self)
@@ -549,9 +550,9 @@ class Visualization(CameraManager):
         self.node.get_logger().info(f"Point: {x}, {y}")
         return 0 <= x < self.params.width and 0 <= y < self.params.height
 
-    def visualize(self, shared_data: SharedData):
+    def visualize(self):
         """Updates and publishes the image."""
-        self.image = self.generateCameraView(shared_data)
+        self.image = self.generateCameraView()
         ros_image = self.bridge.cv2_to_imgmsg(self.image, encoding="bgr8")
         self.publisher.publish(ros_image)
 

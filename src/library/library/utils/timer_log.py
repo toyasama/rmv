@@ -13,7 +13,7 @@ class TimerLogger:
         """
         self.node = node
         self.period = period
-        self.enabled = enabled
+        self.enabled = False
         self.lastLogTime = time.monotonic()
         self.executionTimes = []
 
