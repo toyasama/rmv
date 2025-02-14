@@ -5,6 +5,8 @@ from tf2_msgs.msg import TFMessage
 from .graph import TransformGraph, FrameRMV
 from geometry_msgs.msg import  Transform
 from ..utils.timer_log import TimerLogger
+from threading import Thread, Lock
+from time import sleep
 
 class TFManager(TransformGraph):
     def __init__(self, node: Node) -> None:
@@ -22,10 +24,14 @@ class TFManager(TransformGraph):
         self.count = 0
         self.expiration_duration = 5.0
         
+        self._lock_main_frame = Lock()
+        self._lock_all_frame = Lock()
+        
         self.node.create_subscription(TFMessage, '/tf', self.tfCallback, 10)
         self.node.create_subscription(TFMessage, '/tf_static', self.tfStaticCallback, 10)
 
         self.node.get_logger().info("TFManager initialized successfully.")
+        self._thread = Thread(target=self._updateAllTransformsFrom, daemon=True).start()
 
     def tfCallback(self, msg: TFMessage) -> None:
         """
@@ -43,30 +49,27 @@ class TFManager(TransformGraph):
             self.addTransform(transform, static=True)
             # self.timer_logger.logExecutionTime(self.addTransform)(transform, static=True)
             
-    def updateAllTransformsFrom(self) -> None:
+    def _updateAllTransformsFrom(self) -> None:
         """
         Met à jour les transformations à partir du frame principal.
         """
-        all_info: List[FrameRMV] = self.evaluateTransformsFrom(self.main_frame_name)
-        self.all_transform_from_main_frame =  {frame.name: frame for frame in all_info}
+        while True:
+            with self._lock_main_frame:
+                all_info: List[FrameRMV] = self.evaluateTransformsFrom(self.main_frame_name)
+            with self._lock_all_frame:
+                self.all_transform_from_main_frame =  {frame.name: frame for frame in all_info}
+            self.setDefaultMainFrame()
+            sleep(0.1)
             
-    def getAvailableTFNames(self) -> List[str]:
-        """
-        Récupère la liste des noms des TF disponibles à partir des buffers statiques et des relations parent-enfant.
-        
-        Returns:
-            List[str]: Liste des noms des frames disponibles.
-        """
-        available_frames = self.frames
-        return available_frames
 
     def setDefaultMainFrame(self)->None:
         """
         Set the main TF frame to the first available frame if ones.
         """
-        frames = self.getAvailableTFNames()
-        if frames and frames[self.count] != self.main_frame_name:
-            self.main_frame_name = frames[0]
+        frames =  self.frames
+        with self._lock_main_frame:
+            if frames and frames[self.count] != self.main_frame_name:
+                self.main_frame_name = frames[0]
                 
         if self.node.get_clock().now() - self.start_time > Duration(seconds=20) and frames:
             self.start_time = self.node.get_clock().now()
@@ -78,14 +81,15 @@ class TFManager(TransformGraph):
         Returns:
             str: The name of the main TF frame.
         """
-        return FrameRMV().fill(
-                frame=self.main_frame_name,
-                transform=Transform(),
-                start_connection=None,
-                end_connection=None,
-                opacity=1.0,
-                valid=1
-            )
+        with self._lock_main_frame:
+            return FrameRMV().fill(
+                    frame=self.main_frame_name,
+                    transform=Transform(),
+                    start_connection=None,
+                    end_connection=None,
+                    opacity=1.0,
+                    valid=1
+                )
     
     def equalMainFrame(self, frame: str)->bool:
         """
@@ -95,7 +99,8 @@ class TFManager(TransformGraph):
         Returns:
             bool: True if the frame is the main frame, False otherwise.
         """
-        return frame == self.main_frame_name
+        with self._lock_main_frame:
+            return frame == self.main_frame_name
     
     def getAllTransformsFromMainFrame(self)->dict[str,FrameRMV]:
         """
@@ -103,6 +108,7 @@ class TFManager(TransformGraph):
         Returns:
             dict[str,FrameRMV]: The dictionary of transforms from the main frame.
         """
-        return self.all_transform_from_main_frame
+        with self._lock_all_frame:
+            return self.all_transform_from_main_frame
 
    

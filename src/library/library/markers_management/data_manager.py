@@ -42,8 +42,6 @@ class dataManager():
         Process the data manager.
         """
         markers_rmv = self.markers_manager.markers
-        self.tf_manager.updateAllTransformsFrom()
-        self.tf_manager.setDefaultMainFrame() 
         self.main_frame_frame_info  = self.tf_manager.getMainFrame()
         
         relative_transforms:dict[str,FrameRMV] = self.tf_manager.getAllTransformsFromMainFrame()

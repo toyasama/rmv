@@ -8,7 +8,9 @@ from library.topic_management.subscription_manager import SubscriptionManager
 from library.topic_management.topic_manager import TopicManager
 from library.utils.timer_log import TimerLogger
 from library.utils.shared_data import SharedData
+from library.utils.camera_manager import CameraManager
 from library.tf_management.frame_rmv import FrameRMV
+from library.utils.drawers import CubeTransformer
 __all__ = [
     "MarkerRmv",
     "dataManager",
@@ -22,4 +24,6 @@ __all__ = [
     "TopicManager",
     "TimerLogger",
     "SharedData",
+    "CameraManager",
+    "CubeTransformer"
 ]
