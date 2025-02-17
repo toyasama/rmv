@@ -1,18 +1,18 @@
 from rclpy.node import Node
-from visualization_msgs.msg import Marker, MarkerArray
-from typing import Type, Tuple, List
+from typing import  Tuple, List
 from .subscription_manager import SubscriptionManager
 from ..utils.timer_log import TimerLogger
+from ..markers_management.markers import  MarkersHandler
 
 class TopicManager(SubscriptionManager):
-    def __init__(self, node: Node, process_period:float) -> None:
+    def __init__(self, node: Node,markers_handler:MarkersHandler ) -> None:
         """
         Constructor for the TopicManager class.
         Args:
             node (Node): The node object.
         """
-        SubscriptionManager.__init__(self, node)
-        node.create_timer(1, self.__findMarkersTopicsCallBack) 
+        SubscriptionManager.__init__(self, node, markers_handler)
+        node.create_timer(0.1, self.__findMarkersTopicsCallBack) 
         node.get_logger().info("TopicManager created successfully")
         self.timer_logger_2: TimerLogger = TimerLogger( node, 5.0)
 

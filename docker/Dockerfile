@@ -19,7 +19,8 @@ RUN pip3 install --no-cache-dir \
     opencv-python-headless \
     transforms3d \
     networkx==2.5 \
-    pylint
+    pylint \
+    flask
 
 # Non-root user for development
 ARG USERNAME=devuser

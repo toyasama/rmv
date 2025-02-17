@@ -6,17 +6,17 @@ from typing import Type, List, Dict
 from ..markers_management.markers import  MarkersHandler
 from ..utils.timer_log import TimerLogger
 
-class SubscriptionManager(MarkersHandler):
-    def __init__(self, node: Node):
+class SubscriptionManager():
+    def __init__(self, node: Node, markers_handler: MarkersHandler):
         """
         Manager for handling topic __subscriptions.
         Args:
             node (Node): The ROS2 node object.
         """
-        MarkersHandler.__init__(self, node)
         self._node = node
         self.__subscriptions: Dict[str, Subscription] = {}
         self.timer_logger : TimerLogger= TimerLogger( node, 5.0)
+        self.marker_handler = markers_handler
 
     @property
     def active_topics(self) -> List[str]:
@@ -46,7 +46,7 @@ class SubscriptionManager(MarkersHandler):
         Args:
             message (Marker | MarkerArray): The received message.
         """
-        self.addMarker(message)
+        self.marker_handler.addMarker(message)
         # self.timer_logger.logExecutionTime(self.addMarker)(message)
 
     def unsubscribe(self, topic: str):
