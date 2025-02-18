@@ -1,8 +1,57 @@
+from dataclasses import dataclass
 import numpy as np
-from library import VisualizationParams
 import tf_transformations as tf
-from typing import Tuple, List
-from ..markers_management.markers import MarkerRmv
+from typing import Tuple
+from ..parameters.params import VisualizationParams
+
+class CameraExtrinsics:
+    """Position of the camera in world coordinates."""
+    def __init__(self, x: float, y: float, z: float, theta: float):
+        self.__x: float = x
+        self.__y: float = y
+        self.__z: float = z
+        self.__theta: float = theta
+    
+    
+    @property
+    def camera_position(self) -> np.ndarray:
+        """Returns the position as a NumPy array."""
+        return np.array([self.__x, self.__y, self.__z])
+
+    @property
+    def extrinsic_matrix(self) -> np.ndarray:
+        """
+        Computes the extrinsic transformation matrix to move the camera to the desired position.
+        Returns:
+            The extrinsic transformation matrix as a NumPy array.
+        """
+        T = np.eye(4)
+        T[:3, 3] = self.camera_position
+        # print("T 1", T)
+        T[:3, :3] = tf.rotation_matrix(np.pi, [1, 0, 0])[:3, :3] @ tf.rotation_matrix(self.__theta, [0, 0, 1])[:3, :3]
+        # print("T 2", T)
+        # print("T 3", tf.rotation_matrix(self.__theta, [0, 0, 1])[:3, :3])
+        # print("T 4", tf.rotation_matrix(np.pi, [1, 0, 0])[:3, :3])
+        return T
+
+class CameraIntrinsics:
+    """Intrinsic parameters of the camera."""
+    def __init__(self, width: int, height: int, fov: float):
+        self.__width: int = width
+        self.__height: int = height
+        self.__fov: float = fov
+        
+
+    @property
+    def intrinsic_matrix(self) -> np.ndarray:
+        """Computes the camera's intrinsic matrix."""
+        fx = self.__width / (2 * np.tan(self.__fov / 2))
+        fy = fx
+        cx = self.__width / 2
+        cy = self.__height / 2
+        return np.array([[fx, 0, cx],
+                         [0, fy, cy],
+                         [0, 0, 1]])
 
 class CameraManager:
     """
@@ -10,68 +59,22 @@ class CameraManager:
     and point projection between world and camera coordinates.
     """
     def __init__(self, params: VisualizationParams):
-        self.__params = params
-        self.__camera_distance = 8.0  
-        self.__fov = np.deg2rad(60)  
-        self.__K = self.computeIntrinsicMatrix()
-        
-    @property
-    def camera_distance(self)-> float:
-        return self.__camera_distance
-        
-    @property
-    def params(self)-> VisualizationParams:
-        return self.__params
+        self.__intrinsics = CameraIntrinsics(params.width, params.height, np.deg2rad(60))
+        self.__extrinsics = CameraExtrinsics(0, 0, 5, 0)
     
-    @property
-    def fx(self)-> float:
-        """
-        Returns the focal length in the x direction.
-        This is the same as the element (0, 0) of the intrinsic matrix.
-        """
-        return self.__K[0][0]
-
-    def computeIntrinsicMatrix(self)-> np.ndarray:
-        """Computes the camera's intrinsic matrix."""
-        fx = self.__params.width / (2 * np.tan(self.__fov / 2))
-        fy = fx  
-        cx = self.__params.width / 2
-        cy = self.__params.height / 2
-        return np.array([[fx, 0, cx],
-                         [0, fy, cy],
-                         [0, 0, 1]])
-
-    def computeExtrinsicMatrix(self, position: np.ndarray)-> np.ndarray:
-        """
-        Computes the extrinsic transformation matrix in order to move the camera to the desired position.
-        args:
-            position: object position in camera coordinates.
-        returns:
-            The extrinsic transformation matrix.
-        """
-        T = np.eye(4)
-        T[:3, 3] = [position[0], position[1], self.__camera_distance]  
-        R = tf.rotation_matrix(np.pi, [1, 0, 0])[:4, :4]
-        return np.dot(T, R)
-
-    def worldToCamera(self, point: np.ndarray, T_camera_world)-> np.ndarray:
-        """Converts a world point to camera coordinates.
-        args:
-            point: The point to convert.
-            T_camera_world: The extrinsic matrix.
-        returns:
-            The point in camera coordinates.
-        """
+    def worldToCamera(self, point: np.ndarray) -> np.ndarray:
+        """Converts a world point to camera coordinates."""
+        T_camera_world = self.__extrinsics.extrinsic_matrix
         world_point = np.append(point, 1)
         camera_point = np.dot(T_camera_world, world_point)
         return camera_point[:3]
 
-    def projectToImage(self, point_camera: np.ndarray)-> Tuple[int, int] | None:
+    def projectToImage(self, point_camera: np.ndarray) -> Tuple[int, int] | None:
         """Projects a point from camera space to image space."""
         if point_camera[2] <= 0:
             print("Point is behind the camera.")
             return None  
         
-        pixel_coords = np.dot(self.__K, point_camera)
+        pixel_coords = np.dot(self.__intrinsics.intrinsic_matrix, point_camera)
         pixel_coords /= pixel_coords[2] 
         return int(pixel_coords[0]), int(pixel_coords[1])

@@ -22,10 +22,9 @@ class LineStripDrawer:
 
         transformed_points = [position + rotation_matrix @ np.array([p.x, p.y, p.z]) for p in marker.points]
 
-        T_camera_world = camera_manager.computeExtrinsicMatrix(np.array([0, 0, 0]))
         projected_points = []
         for p in transformed_points:
-            camera_coords = camera_manager.worldToCamera(p, T_camera_world)
+            camera_coords = camera_manager.worldToCamera(p)
             if camera_coords[2] > 0:  # Vérifier que le point est devant la caméra
                 image_point = camera_manager.projectToImage(camera_coords)
                 if image_point is not None:

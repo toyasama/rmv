@@ -23,10 +23,9 @@ class CylinderDrawer:
         top_center = position + rotation_matrix @ np.array([0, 0, height / 2])
         bottom_center = position + rotation_matrix @ np.array([0, 0, -height / 2])
 
-        T_camera_world = camera_manager.computeExtrinsicMatrix(np.array([0, 0, 0]))
 
-        top_camera = camera_manager.worldToCamera(top_center, T_camera_world)
-        bottom_camera = camera_manager.worldToCamera(bottom_center, T_camera_world)
+        top_camera = camera_manager.worldToCamera(top_center)
+        bottom_camera = camera_manager.worldToCamera(bottom_center)
 
         if top_camera[2] > 0 and bottom_camera[2] > 0:
             top_image = camera_manager.projectToImage(top_camera)
@@ -35,8 +34,8 @@ class CylinderDrawer:
             ellipse_x = rotation_matrix @ np.array([radius_x, 0, 0])
             ellipse_y = rotation_matrix @ np.array([0, radius_y, 0])
 
-            projected_x_top = camera_manager.worldToCamera(position + ellipse_x, T_camera_world)
-            projected_y_top = camera_manager.worldToCamera(position + ellipse_y, T_camera_world)
+            projected_x_top = camera_manager.worldToCamera(position + ellipse_x)
+            projected_y_top = camera_manager.worldToCamera(position + ellipse_y)
 
             if projected_x_top[2] > 0 and projected_y_top[2] > 0:
                 projected_x_top = camera_manager.projectToImage(projected_x_top)

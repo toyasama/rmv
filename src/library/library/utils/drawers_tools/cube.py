@@ -31,10 +31,9 @@ class CubeTransformer:
     
     @staticmethod
     def getVisibleCorners(transformed_corners: np.ndarray, camera_manager: CameraManager) -> List[Tuple[int, int]]:
-        T_camera_world = camera_manager.computeExtrinsicMatrix(np.array([0, 0, 0]))
         visible_corners = []
         for corner in transformed_corners:
-            camera_coords = camera_manager.worldToCamera(corner, T_camera_world)
+            camera_coords = camera_manager.worldToCamera(corner)
             if camera_coords[2] > 0:
                 image_point = camera_manager.projectToImage(camera_coords)
                 if image_point:

@@ -9,7 +9,6 @@ class GridDrawer:
         height, width = image.shape[:2]
         thickness = max(1, int(width / camera_manager.fx))  
 
-        T_camera_world = camera_manager.computeExtrinsicMatrix(np.array([0, 0, 0]))
         max_x_m = camera_manager.camera_distance * np.tan(camera_manager.fov / 2)
         max_y_m = max_x_m * (height / width)
 
@@ -20,8 +19,8 @@ class GridDrawer:
                 top_world = np.array([x_m, max_y_m, 0])
                 bottom_world = np.array([x_m, -max_y_m, 0])
 
-                top_img = camera_manager.projectToImage(camera_manager.worldToCamera(top_world, T_camera_world))
-                bottom_img = camera_manager.projectToImage(camera_manager.worldToCamera(bottom_world, T_camera_world))
+                top_img = camera_manager.projectToImage(camera_manager.worldToCamera(top_world))
+                bottom_img = camera_manager.projectToImage(camera_manager.worldToCamera(bottom_world))
 
                 if top_img and bottom_img:
                     cv2.line(image, top_img, bottom_img, color, thickness, cv2.LINE_AA) 
@@ -35,8 +34,8 @@ class GridDrawer:
                 left_world = np.array([-max_x_m, y_m, 0])
                 right_world = np.array([max_x_m, y_m, 0])
 
-                left_img = camera_manager.projectToImage(camera_manager.worldToCamera(left_world, T_camera_world))
-                right_img = camera_manager.projectToImage(camera_manager.worldToCamera(right_world, T_camera_world))
+                left_img = camera_manager.projectToImage(camera_manager.worldToCamera(left_world))
+                right_img = camera_manager.projectToImage(camera_manager.worldToCamera(right_world))
 
                 if left_img and right_img:
                     cv2.line(image, left_img, right_img, color, thickness, cv2.LINE_AA)

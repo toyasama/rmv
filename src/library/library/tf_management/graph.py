@@ -4,16 +4,16 @@ from threading import Thread, RLock
 from typing import Optional, List
 from geometry_msgs.msg import Transform, TransformStamped
 from .transform_utils import TransformUtils
-from .transform_rmv import RmvTransform, TransformDrawerInfo
+from .transform_rmv import RmvTransform
 from abc import ABC, abstractmethod
-from typing import Dict
+
 class BaseGraph(ABC):
     """Base class managing a directed graph with thread-safe operations."""
     def __init__(self):
         self._graph = nx.DiGraph()
         self._graph_lock = RLock()
         self._running = True
-        self.main_frame: Optional[str] = "frame_1"
+        self._main_frame: str = ""
         self._lock_main_frame = RLock()
         self.count = 0
         self.begin = time.time()
@@ -95,15 +95,15 @@ class TransformGraph(BaseGraph):
     
     def _update(self):
         """Periodically update transforms and evaluate transforms from the main frame."""
-        if self.main_frame not in self._graph:
+        if self._main_frame not in self._graph:
             return
         with self._graph_lock:
             for parent, child in self._graph.edges:
                 edge_data: RmvTransform = self._graph[parent][child]["frameInfo"]
-                if edge_data.drawer_info.main_frame == self.main_frame or edge_data.name == self.main_frame:
+                if edge_data.drawer_info.main_frame == self._main_frame or edge_data.name == self._main_frame:
                     continue
                 try:
-                    path = nx.shortest_path(self._graph, source=self.main_frame, target=edge_data.name)
+                    path = nx.shortest_path(self._graph, source=self._main_frame, target=edge_data.name)
                     transform_from_main = self._computeTransformInfo(path)
                     if not transform_from_main:
                         continue
@@ -111,12 +111,12 @@ class TransformGraph(BaseGraph):
                         inverse_transform = self.getTransform(child, parent)
                         start_connection = TransformUtils.combineTransforms(transform_from_main, inverse_transform)
                         end_connection = transform_from_main
-                        self._graph[parent][child]["frameInfo"].updateTransformDrawerInfo(self.main_frame,transform_from_main, start_connection, end_connection)
+                        self._graph[parent][child]["frameInfo"].updateTransformDrawerInfo(self._main_frame,transform_from_main, start_connection, end_connection)
                     else:
                         inverse_transform = self.getTransform(child, parent)
                         end_connection = TransformUtils.combineTransforms(transform_from_main, inverse_transform)
                         start_connection = transform_from_main
-                        self._graph[child][parent]["frameInfo"].updateTransformDrawerInfo(self.main_frame,transform_from_main, start_connection, end_connection)
+                        self._graph[child][parent]["frameInfo"].updateTransformDrawerInfo(self._main_frame,transform_from_main, start_connection, end_connection)
                 except nx.NetworkXNoPath:
                     continue
 
@@ -146,13 +146,18 @@ class TransformGraph(BaseGraph):
         if not frames:
             return
         with self._lock_main_frame:
-            if frames and frames[self.count] != self.main_frame:
-                self.main_frame = frames[self.count]
-                print(f"Main frame set to: {self.main_frame}")
+            if frames and frames[self.count] != self._main_frame:
+                self._main_frame = frames[self.count]
+                print(f"Main frame set to: {self._main_frame}")
         elapsed = time.time() - self.begin
-        if elapsed > 30.0 and frames:
+        if elapsed > 10.0 and frames:
             self.begin = time.time()
             self.count = (self.count +1) % len(frames)
+    
+    @property
+    def main_frame(self):
+        with self._lock_main_frame:
+            return str(self._main_frame)
             
     def getTransformsFromMainFrame(self):
         """
@@ -162,6 +167,6 @@ class TransformGraph(BaseGraph):
         with self._graph_lock:
             for parent, child in self._graph.edges:
                 edge_data: RmvTransform = self._graph[parent][child]["frameInfo"]
-                if edge_data.drawer_info.main_frame == self.main_frame:
+                if edge_data.drawer_info.main_frame == self._main_frame:
                     drawer_list.append(edge_data.drawer_info)
-            return list(drawer_list)
+            return drawer_list

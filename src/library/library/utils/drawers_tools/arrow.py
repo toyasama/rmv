@@ -26,10 +26,9 @@ class ArrowDrawer:
 
         cone_base = end - (end - start) * (head_length / np.linalg.norm(end - start))
 
-        T_camera_world = camera_manager.computeExtrinsicMatrix(np.array([0, 0, 0]))
-        start_camera = camera_manager.worldToCamera(start, T_camera_world)
-        end_camera = camera_manager.worldToCamera(end, T_camera_world)
-        cone_base_camera = camera_manager.worldToCamera(cone_base, T_camera_world)
+        start_camera = camera_manager.worldToCamera(start)
+        end_camera = camera_manager.worldToCamera(end)
+        cone_base_camera = camera_manager.worldToCamera(cone_base)
 
         if start_camera[2] > 0 and end_camera[2] > 0 and cone_base_camera[2] > 0:
             start_image = camera_manager.projectToImage(start_camera)

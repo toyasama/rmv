@@ -11,8 +11,8 @@ from sensor_msgs.msg import  Image
 from flask import Flask, Response
 import threading
 from time import sleep
-
-
+import transforms3d as tf
+import transforms3d.quaternions as quat
 
 class Visualization(CameraManager):
     pass
@@ -21,6 +21,7 @@ class Visualization(CameraManager):
         Initializes the visualization object, inheriting from CameraManager, with an option to draw a grid.
         """
         super().__init__(params)
+        self.params = params
         self.node = node
         self.bridge = CvBridge()
         qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, durability=QoSDurabilityPolicy.VOLATILE, reliability=QoSReliabilityPolicy.BEST_EFFORT)
@@ -37,53 +38,78 @@ class Visualization(CameraManager):
         self.server_thread = threading.Thread(target=self.runServer, daemon=True)
         self.server_thread.start()
         self.node.get_logger().info("Visualization initialized successfully.")
+        
+    def drawMainFrame(self, image: np.ndarray,main_tf: str ):
 
-    def generateCameraView(self, tf_drawer_info: List[TransformDrawerInfo], markers: List[MarkerRmv]):
+
+        frame_pos = np.array([0, 0, 0]) 
+        
+
+        frame_pos_x_end = frame_pos + np.array([self.axes_distance, 0, 0])
+        frame_pos_y_end = frame_pos + np.array([0, self.axes_distance, 0])
+
+        proj_x_end = self.projectToImage(self.worldToCamera(frame_pos_x_end))
+        proj_y_end = self.projectToImage(self.worldToCamera(frame_pos_y_end))
+        proj = self.projectToImage(self.worldToCamera(frame_pos))
+        frames_position = FramesPosition(main_tf,proj, proj_x_end, proj_y_end, 1)
+        if proj:
+            DrawFrame.drawFrame(image, frames_position)
+            
+    def projectAndDrawFrame(self,image :Image, transform_info: TransformDrawerInfo)->FramesPosition:
+        """
+        Projects a 3D point to the image plane using the intrinsic matrix.
+        Args:
+            point: The 3D point to project.
+        Returns:
+            The 2D point on the image plane.
+        """
+        
+        quat_array = np.array([transform_info.pose_in_main_frame.rotation.w, 
+                            transform_info.pose_in_main_frame.rotation.x, 
+                            transform_info.pose_in_main_frame.rotation.y, 
+                            transform_info.pose_in_main_frame.rotation.z])  
+
+        # rot_mat = quat.quat2mat(quat_array)
+        #TODO: check if the rotation is correct
+
+        frame_pos = np.array([transform_info.pose_in_main_frame.translation.x, 
+                            transform_info.pose_in_main_frame.translation.y, 
+                            transform_info.pose_in_main_frame.translation.z]) 
+        
+         
+        frame_pos_x_end = frame_pos + np.array([self.axes_distance, 0, 0])
+        frame_pos_y_end = frame_pos + np.array([0, self.axes_distance, 0])
+
+        proj_x_end = self.projectToImage(self.worldToCamera(frame_pos_x_end))
+        proj_y_end = self.projectToImage(self.worldToCamera(frame_pos_y_end))
+        proj = self.projectToImage(self.worldToCamera(frame_pos))
+
+        start_connection =np.array([transform_info.start_connection.translation.x, transform_info.start_connection.translation.y, transform_info.start_connection.translation.z])
+        end_connection =np.array([transform_info.end_connection.translation.x, transform_info.end_connection.translation.y, transform_info.end_connection.translation.z])
+        
+        proj_start_connection = self.projectToImage(self.worldToCamera(start_connection))
+        proj_end_connection = self.projectToImage(self.worldToCamera(end_connection))
+        frames_position = FramesPosition( transform_info.transform_name, proj, proj_x_end, proj_y_end,transform_info.opacity, proj_start_connection, proj_end_connection)
+        if proj:
+            DrawFrame.drawFrame(image, frames_position)
+        else:
+            print("Frame not in view")
+
+    def generateCameraView(self,  markers: List[MarkerRmv]):
         """Generates an image centered on `main_tf` with a grid in the background."""
+        
         image = self.createNewImage()
-        if not tf_drawer_info:
-            return image  # No reference point found
-        main_tf = "frame_1"
-        if not main_tf:
-            return image  # No reference point found
+        
+        main_frame = self.transform_graph.main_frame
+        if not main_frame:
+            return image  
 
-        # center_position = np.array([main_tf.transform.translation.x,
-        #                             main_tf.transform.translation.y,
-        #                             main_tf.transform.translation.z])
-
-        center_position = np.array([0,0,0])
-        # Update extrinsic matrix centered on `main_tf`
-        T_camera_world = self.computeExtrinsicMatrix(center_position)
-
-
-        frame_pos_x_end = center_position + np.array([self.axes_distance, 0, 0])
-        frame_pos_y_end = center_position + np.array([0,self.axes_distance, 0])
-        proj_x_end = self.projectToImage(self.worldToCamera(frame_pos_x_end, T_camera_world))
-        proj_y_end = self.projectToImage(self.worldToCamera(frame_pos_y_end, T_camera_world))
-        proj_main = self.projectToImage(self.worldToCamera(center_position, T_camera_world))
-        # frames_position = FramesPosition(proj_main, proj_x_end, proj_y_end)
-        # if proj_main:
-        #     DrawFrame.drawFrame(image, frames_position, main_tf)
+        self.drawMainFrame(image, main_frame)
+        tf_drawer_info: List[TransformDrawerInfo] = self.transform_graph.getTransformsFromMainFrame()
 
         for frame in tf_drawer_info:
-            frame_pos = np.array([frame.pose_in_main_frame.translation.x, frame.pose_in_main_frame.translation.y, frame.pose_in_main_frame.translation.z])
-            frame_pos_x_end = frame_pos + np.array([self.axes_distance, 0, 0])
-            frame_pos_y_end = frame_pos + np.array([0,self.axes_distance, 0])
-            proj_x_end = self.projectToImage(self.worldToCamera(frame_pos_x_end, T_camera_world))
-            proj_y_end = self.projectToImage(self.worldToCamera(frame_pos_y_end, T_camera_world))
-            proj = self.projectToImage(self.worldToCamera(frame_pos, T_camera_world))
+            self.projectAndDrawFrame(image, frame)
             
-            start_connection =np.array([frame.start_connection.translation.x, frame.start_connection.translation.y, frame.start_connection.translation.z])
-            end_connection =np.array([frame.end_connection.translation.x, frame.end_connection.translation.y, frame.end_connection.translation.z])
-            
-            proj_start_connection = self.projectToImage(self.worldToCamera(start_connection, T_camera_world))
-            proj_end_connection = self.projectToImage(self.worldToCamera(end_connection, T_camera_world))
-            
-            frames_position = FramesPosition( frame.transform_name, proj, proj_x_end, proj_y_end,frame.opacity, proj_start_connection, proj_end_connection)
-            if proj:
-                DrawFrame.drawFrame(image, frames_position)
-            else:
-                print("Frame not in view")
 
         for marker in markers:
             match marker.type:
@@ -110,8 +136,7 @@ class Visualization(CameraManager):
 
     def visualize(self, markers: List[MarkerRmv]):
         """Génère et publie l'image en format brut et compressé."""
-        tf_drawer_info = self.transform_graph.getTransformsFromMainFrame()
-        self.image = self.generateCameraView(tf_drawer_info, markers)
+        self.image = self.generateCameraView( markers)
 
         ros_image = self.bridge.cv2_to_imgmsg(self.image, encoding="bgr8")
         self.publisher_raw.publish(ros_image)

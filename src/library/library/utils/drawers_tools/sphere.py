@@ -28,9 +28,8 @@ class SphereDrawer:
 
         rotated_axes = np.dot(rotation_matrix, local_axes.T).T
 
-        T_camera_world = camera_manager.computeExtrinsicMatrix(np.array([0, 0, 0]))
 
-        center_camera = camera_manager.worldToCamera(position, T_camera_world)
+        center_camera = camera_manager.worldToCamera(position)
         if center_camera[2] <= 0:
             return 
 
@@ -39,7 +38,7 @@ class SphereDrawer:
         projected_axes = []
         for axis in rotated_axes:
             world_point = position + axis
-            camera_point = camera_manager.worldToCamera(world_point, T_camera_world)
+            camera_point = camera_manager.worldToCamera(world_point)
             if camera_point[2] > 0:
                 projected_axes.append(camera_manager.projectToImage(camera_point))
 

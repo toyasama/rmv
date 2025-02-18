@@ -16,14 +16,8 @@ class TFManager():
         self.node = node
         self.timer_logger = TimerLogger(self.node, 2.0)
 
-        self.main_frame_name = ""
-        self.all_transform_from_main_frame   =  {}
-        self.frame_index = 0
-        self.count = 0
         self.transform_graph = transform_graph
         
-        self._lock_main_frame = Lock()
-        self._lock_all_frame = Lock()
         
         self.node.create_subscription(TFMessage, '/tf', self.tfCallback, 10)
         self.node.create_subscription(TFMessage, '/tf_static', self.tfStaticCallback, 10)
@@ -36,7 +30,6 @@ class TFManager():
         """
         for transform in msg.transforms:
             self.transform_graph.addTransform(transform, static=False)
-            # self.timer_logger.logExecutionTime(self.addTransform)(transform,expiration= self.expiration_duration, static=False)
 
     def tfStaticCallback(self, msg: TFMessage) -> None:
         """
@@ -44,43 +37,5 @@ class TFManager():
         """
         for transform in msg.transforms:
             self.transform_graph.addTransform(transform, static=True)
-            # self.timer_logger.logExecutionTime(self.addTransform)(transform, static=True)
             
 
-    # def getMainFrame(self):
-    #     """
-    #     Get the main TF frame for the TF manager.
-    #     Returns:
-    #         str: The name of the main TF frame.
-    #     """
-    #     with self._lock_main_frame:
-    #         return FrameRMV().fill(
-    #                 frame=self.main_frame_name,
-    #                 transform=Transform(),
-    #                 start_connection=None,
-    #                 end_connection=None,
-    #                 opacity=1.0,
-    #                 valid=1
-    #             )
-    
-    def equalMainFrame(self, frame: str)->bool:
-        """
-        Check if the frame is the main frame.
-        Args:
-            frame (str): The frame to check.
-        Returns:
-            bool: True if the frame is the main frame, False otherwise.
-        """
-        with self._lock_main_frame:
-            return frame == self.main_frame_name
-    
-    # def getAllTransformsFromMainFrame(self)->dict[str,FrameRMV]:
-    #     """
-    #     Get all the transforms from the main frame.
-    #     Returns:
-    #         dict[str,FrameRMV]: The dictionary of transforms from the main frame.
-    #     """
-    #     with self._lock_all_frame:
-    #         return self.all_transform_from_main_frame
-
-   
