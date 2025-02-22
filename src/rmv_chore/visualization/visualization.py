@@ -5,14 +5,11 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSDurabilityPolicy, QoSReliabilityPolicy
 from library import( VisualizationParams,  MarkerRmv, SharedData, CameraManager, TransformDrawerInfo, TransformGraph)
 from library import( DrawFrame, DrawMarkers, FramesPosition)
-from visualization_msgs.msg import Marker
 from typing import List
 from sensor_msgs.msg import  Image
 from flask import Flask, Response
 import threading
 from time import sleep
-import transforms3d as tf
-import transforms3d.quaternions as quat
 
 class Visualization(CameraManager):
     pass
@@ -29,7 +26,6 @@ class Visualization(CameraManager):
         self.grid_spacing = 0.5
         self.axes_distance = 0.1
         self.image = self.createNewImage()
-        self.shared_data = SharedData()
         self.transform_graph = transform_graph
         self.publisher_raw = self.node.create_publisher(Image, "visualization_image", qos)
         
@@ -109,21 +105,8 @@ class Visualization(CameraManager):
 
         for frame in tf_drawer_info:
             self.projectAndDrawFrame(image, frame)
-            
 
-        for marker in markers:
-            match marker.type:
-                case  Marker.CUBE:
-                    DrawMarkers.drawCube(image, marker, self)
-                    
-                case  Marker.SPHERE:
-                    DrawMarkers.drawSphere(image, marker, self)
-                
-                case  Marker.CYLINDER:
-                    DrawMarkers.drawCylinder(image, marker, self)
-                    
-                case  Marker.LINE_STRIP:
-                    DrawMarkers.drawLineStrip(image, marker, self)
+        DrawMarkers.drawMarkers(image, markers, self)
         return image
 
 

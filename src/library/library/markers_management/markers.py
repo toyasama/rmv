@@ -20,9 +20,9 @@ class MarkerRmvBase:
             marker (Marker): L'objet marker ROS.
             reception_time (Time): Le moment où le marker a été reçu.
         """
-        self._marker = marker  # Conserver l'objet Marker d'origine
-        self._reception_time = reception_time  # Reception time
-        self._modified_pose = None  # Pose modifiable temporaire (initialement None)
+        self._marker = marker 
+        self._pub_time = marker.header.stamp  
+        self._modified_pose = None  
         
     @property
     def identifier(self) -> tuple:
@@ -85,11 +85,14 @@ class MarkerRmvBase:
 
     def isExpired(self, current_time: Time) -> bool:
         """Vérifie si le marker a expiré."""
-        expiration_time = self.lifetime.sec + (self.lifetime.nanosec * 1e-9) + self._reception_time.sec + (self._reception_time.nanosec * 1e-9)
+        expiration_time = self.lifetime.sec + (self.lifetime.nanosec * 1e-9) + self._pub_time.sec + (self._pub_time.nanosec * 1e-9)
         current_time_in_seconds = current_time.sec + (current_time.nanosec * 1e-9)
+        difference = current_time_in_seconds - expiration_time
+        # print(f"Expiration time: {expiration_time}, Current time: {current_time_in_seconds} Difference: {difference}")
         return current_time_in_seconds > expiration_time
 
-
+1740216468.4591227,
+1740216463.5565128
 class MarkerRmv(MarkerRmvBase):
     """Classe spécifique à la gestion des markers avec identifiant et gestion du temps."""
     
@@ -101,19 +104,12 @@ class MarkerRmv(MarkerRmvBase):
             marker (Marker): Le marker à ajouter.
             current_time (Time): Le temps actuel du message.
         """
-        super().__init__(marker, current_time)  # Héritage de MarkerRmvBase
-
-    def equals(self, other_marker: 'MarkerRmv') -> bool:
-        """
-        Compare deux markers pour voir s'ils sont égaux (basé sur leur identifiant).
-
-        Args:
-            other_marker (MarkerRmv): Un autre marker à comparer.
-
-        Returns:
-            bool: True si les identifiants sont égaux, False sinon.
-        """
-        return self.identifier == other_marker.identifier
+        super().__init__(marker, current_time) 
+        
+    def __eq__(self, value):
+        if not isinstance(value, MarkerRmv):
+            return False
+        return self.identifier == value.identifier
 
 class BaseMessage(ABC):
     def __init__(self, message_type: Type[Marker | MarkerArray]):
@@ -154,6 +150,7 @@ class MarkersHandler:
             self.__processMessage()
             with self.__lock_markers_list:
                 self.__markers.update(self.__new_markers)
+            self.__new_markers.clear()
             time.sleep(0.03)
     
     def __del__(self):
@@ -179,11 +176,17 @@ class MarkersHandler:
         for msg in new_msgs:
             if isinstance(msg, Marker):
                 marker = MarkerMessage.process(msg, reception_time)
+                if marker.isExpired(reception_time):
+                    print(f"Marker {marker.identifier} expired before adding")
+                    continue
                 self.__new_markers[marker.identifier] = marker
                 
             elif isinstance(msg, MarkerArray):
                 marker_list:List[MarkerRmv] = MarkerArrayMessage.process(msg, reception_time)
                 for marker in marker_list:
+                    if marker.isExpired(reception_time):
+                        print(f"Marker {marker.identifier} expired before adding")
+                        continue
                     self.__new_markers[marker.identifier] = marker
             
     @property
@@ -201,10 +204,10 @@ class MarkersHandler:
         """
         Delete the expired markers from the markers list.
         """
-        current_time = self.__node.get_clock().now().to_msg()
         while self.__running:
+            current_time = self.__node.get_clock().now().to_msg()
             with self.__lock_markers_list:
                 expired_keys = [identifier for identifier, marker in self.__markers.items() if marker.isExpired(current_time)]
                 for key in expired_keys:
-                    del self.__markers[key] 
-            time.sleep(1)
+                    del self.__markers[key]
+            time.sleep(0.5)

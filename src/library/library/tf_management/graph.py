@@ -4,7 +4,7 @@ from threading import Thread, RLock
 from typing import Optional, List
 from geometry_msgs.msg import Transform, TransformStamped
 from .transform_utils import TransformUtils
-from .transform_rmv import RmvTransform
+from .transform_rmv import RmvTransform, TransformDrawerInfo
 from abc import ABC, abstractmethod
 
 class BaseGraph(ABC):
@@ -159,7 +159,7 @@ class TransformGraph(BaseGraph):
         with self._lock_main_frame:
             return str(self._main_frame)
             
-    def getTransformsFromMainFrame(self):
+    def getTransformsFromMainFrame(self)->List[TransformDrawerInfo]:
         """
         Get all transforms from the main frame.
         """

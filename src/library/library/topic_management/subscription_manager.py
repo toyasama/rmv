@@ -35,8 +35,8 @@ class SubscriptionManager():
             topic_type (str): ROS2 message type string.
             callback: Callback function for the topic.
         """
-        if topic not in self.__subscriptions:
-            self._node.get_logger().info(f"Subscribing to: {topic} ({topic_type})")
+        if topic not in list(self.__subscriptions.keys()):
+            print(f"Subscribe to {topic}")
             message_type = self._getMessageType(topic_type)
             self.__subscriptions[topic] = self._node.create_subscription(message_type, topic, self.callback, qos_profile_sensor_data)
 

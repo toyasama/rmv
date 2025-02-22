@@ -5,19 +5,13 @@ from typing import Tuple
 from ..parameters.params import VisualizationParams
 
 class CameraExtrinsics:
-    """Position of the camera in world coordinates."""
+    """Extrinsic parameters of the camera."""
     def __init__(self, x: float, y: float, z: float, theta: float):
         self.__x: float = x
         self.__y: float = y
         self.__z: float = z
         self.__theta: float = theta
     
-    
-    @property
-    def camera_position(self) -> np.ndarray:
-        """Returns the position as a NumPy array."""
-        return np.array([self.__x, self.__y, self.__z])
-
     @property
     def extrinsic_matrix(self) -> np.ndarray:
         """
@@ -26,12 +20,8 @@ class CameraExtrinsics:
             The extrinsic transformation matrix as a NumPy array.
         """
         T = np.eye(4)
-        T[:3, 3] = self.camera_position
-        # print("T 1", T)
+        T[:3, 3] = np.array([self.__x, self.__y, self.__z])
         T[:3, :3] = tf.rotation_matrix(np.pi, [1, 0, 0])[:3, :3] @ tf.rotation_matrix(self.__theta, [0, 0, 1])[:3, :3]
-        # print("T 2", T)
-        # print("T 3", tf.rotation_matrix(self.__theta, [0, 0, 1])[:3, :3])
-        # print("T 4", tf.rotation_matrix(np.pi, [1, 0, 0])[:3, :3])
         return T
 
 class CameraIntrinsics:
@@ -40,7 +30,6 @@ class CameraIntrinsics:
         self.__width: int = width
         self.__height: int = height
         self.__fov: float = fov
-        
 
     @property
     def intrinsic_matrix(self) -> np.ndarray:
@@ -74,7 +63,16 @@ class CameraManager:
         if point_camera[2] <= 0:
             print("Point is behind the camera.")
             return None  
-        
         pixel_coords = np.dot(self.__intrinsics.intrinsic_matrix, point_camera)
         pixel_coords /= pixel_coords[2] 
         return int(pixel_coords[0]), int(pixel_coords[1])
+    
+    @property
+    def fx(self) -> float:
+        """Gets the focal length in the x-direction."""
+        return self.__intrinsics.intrinsic_matrix[0, 0]
+    
+    @property
+    def camera_distance(self) -> float:
+        """Gets the distance between the camera and the origin."""
+        return self.__extrinsics.extrinsic_matrix[2, 3]

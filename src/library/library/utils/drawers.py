@@ -4,6 +4,7 @@ from .camera import CameraManager
 import cv2
 from . import drawers_tools
 from typing import Tuple
+from visualization_msgs.msg import Marker
 
 class DrawFrame:
     
@@ -84,6 +85,23 @@ class DrawFrame:
             print("Invalid opacity value. Must be between 0 and 1.")
 
 class DrawMarkers:
+    
+    @staticmethod
+    def drawMarkers(image: np.ndarray, markers: list, camera_manager: CameraManager) -> None:
+        for marker in markers:
+            match marker.type:
+                case  Marker.CUBE:
+                    DrawMarkers.drawCube(image, marker, camera_manager)
+                    
+                case  Marker.SPHERE:
+                    DrawMarkers.drawSphere(image, marker, camera_manager)
+                
+                case  Marker.CYLINDER:
+                    DrawMarkers.drawCylinder(image, marker, camera_manager)
+                    
+                case  Marker.LINE_STRIP:
+                    DrawMarkers.drawLineStrip(image, marker, camera_manager)
+    
     @staticmethod
     def drawCube(image: np.ndarray, marker, camera_manager: CameraManager) -> None:
         transformed_corners = drawers_tools.CubeTransformer.getTransformedCorners(marker)

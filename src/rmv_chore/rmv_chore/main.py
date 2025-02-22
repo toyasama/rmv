@@ -1,15 +1,10 @@
 import rclpy
 from rclpy.node import Node
 from time import time, sleep
-from typing import List
+from typing import List, Dict
 
 from std_msgs.msg import ColorRGBA
-from library.tf_management.tf import TFManager
-from library.topic_management.topic_manager import TopicManager
-from library.markers_management.markers import MarkerRmv, MarkersHandler
-from library.tf_management.transform_rmv import TransformDrawerInfo
-from library.tf_management.transform_utils import TransformUtils
-from library.tf_management.graph import TransformGraph
+from library import (TransformDrawerInfo, TransformGraph, MarkerRmv, TFManager, MarkersHandler, TopicManager, TransformUtils)
 from visualization.visualization import Visualization
 from library import VisualizationParams
 
@@ -30,25 +25,26 @@ class RMVChoreNode(Node):
         self.visualization = Visualization(self, visu_params, self.transform_graph)
         self.topic_manager = TopicManager(self, self.markers_handler)
 
-        # Timer pour la visualisation (30 FPS ~ 0.03s)
         self.create_timer(0.03, self.visualize)
         self.get_logger().info("RMV Chore node initialized successfully.")
 
-    def filterMarkers(self, markers: List[MarkerRmv], transforms: List[TransformDrawerInfo]) -> List[MarkerRmv]:
+    def projectToMainFrame(self, markers: List[MarkerRmv], transforms: List[TransformDrawerInfo]) -> List[MarkerRmv]:
         """
         Filtre les marqueurs en fonction des transformations disponibles.
         """
-        filtered_markers = []
+        main_frame = self.transform_graph.main_frame
+        transform_dict: Dict[str, TransformDrawerInfo] = {transform.transform_name: transform.pose_in_main_frame for transform in transforms}
+        projected_markers = []
         for marker in markers:
-            if marker.identifier in transforms:
-                for transform in transforms:
-                    if marker.frame_id == transform.frame:
-                        pose_in_main_frame = TransformUtils.transformPoseToParentFrame(marker.pose, transform.pose_in_main_frame)
-                        if pose_in_main_frame:
-                            marker.modified_pose = pose_in_main_frame
-                            filtered_markers.append(marker)
-                            break
-        return filtered_markers
+            if marker.frame_id == main_frame:
+                marker.modified_pose = marker.pose
+                projected_markers.append(marker)
+            elif marker.frame_id in transform_dict:
+                pose_in_main_frame = TransformUtils.transformPoseToParentFrame(marker.pose, transform_dict[marker.frame_id])
+                if pose_in_main_frame:
+                    marker.modified_pose = pose_in_main_frame
+                    projected_markers.append(marker)
+        return projected_markers
 
     def visualize(self):
         """
@@ -56,10 +52,7 @@ class RMVChoreNode(Node):
         """
         start_time = time()
         markers = self.markers_handler.markers
-
-        # Appliquer un filtrage si nécessaire
-        # markers = self.filterMarkers(markers, self.transform_graph.getTransformsFromMainFrame())
-
+        markers = self.projectToMainFrame(markers, self.transform_graph.getTransformsFromMainFrame())
         self.visualization.visualize(markers)
         # self.get_logger().info(f"Visualization update time: {time() - start_time:.3f}s")
 

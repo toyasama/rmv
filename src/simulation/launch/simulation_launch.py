@@ -13,6 +13,6 @@ def generate_launch_description():
         executable='tf_broadcaster',
         output='screen'
     )
-    # ld.add_action(markers_node) #TODO: markers are not deleted
+    ld.add_action(markers_node)
     ld.add_action(tf_broadcaster_node)
     return ld

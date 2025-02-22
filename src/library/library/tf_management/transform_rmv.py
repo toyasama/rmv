@@ -94,8 +94,10 @@ class TransformDrawerInfo():
     
     def __str__(self) -> str:
         return f"Main frame: {self._main_frame}, Start connection: {self._start_connection.translation}, End connection: {self._end_connection.translation}"
+    
     def __repr__(self):
         return self.__str__()
+    
 class RmvTransform(TransformBase):
     def __init__(self,  transform_stamped: TransformStamped, static: bool ):
         super().__init__(transform_stamped, static)

@@ -13,8 +13,8 @@ class TopicManager(SubscriptionManager):
         """
         SubscriptionManager.__init__(self, node, markers_handler)
         node.create_timer(0.1, self.__findMarkersTopicsCallBack) 
-        node.get_logger().info("TopicManager created successfully")
         self.timer_logger_2: TimerLogger = TimerLogger( node, 5.0)
+        node.get_logger().info("TopicManager created successfully")
 
     def __findMarkersTopicsCallBack(self) -> None:
         """
