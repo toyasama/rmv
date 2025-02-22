@@ -3,7 +3,7 @@ import cv2
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSDurabilityPolicy, QoSReliabilityPolicy
-from library import( VisualizationParams,  MarkerRmv, SharedData, CameraManager, TransformDrawerInfo, TransformGraph)
+from library import( VisualizationParameters,  MarkerRmv, CameraManager, TransformDrawerInfo, TransformGraph)
 from library import( DrawFrame, DrawMarkers, FramesPosition)
 from typing import List
 from sensor_msgs.msg import  Image
@@ -13,7 +13,7 @@ from time import sleep
 
 class Visualization(CameraManager):
     pass
-    def __init__(self, node: "Node", params: "VisualizationParams", transform_graph: TransformGraph):
+    def __init__(self, node: Node, params: VisualizationParameters, transform_graph: TransformGraph):
         """
         Initializes the visualization object, inheriting from CameraManager, with an option to draw a grid.
         """
@@ -22,7 +22,6 @@ class Visualization(CameraManager):
         self.node = node
         self.bridge = CvBridge()
         qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, durability=QoSDurabilityPolicy.VOLATILE, reliability=QoSReliabilityPolicy.BEST_EFFORT)
-        self.draw_grid = False
         self.grid_spacing = 0.5
         self.axes_distance = 0.1
         self.image = self.createNewImage()
@@ -128,8 +127,10 @@ class Visualization(CameraManager):
         """Creates a new image with a black background."""
         image = np.full((self.params.height, self.params.width, 3), (0, 0, 0), dtype=np.uint8)
         
-        if self.draw_grid:
-            DrawFrame.drawGrid(image, self,self.axes_distance)
+        if self.params.draw_grid:
+            spacing_in_px = max(1 ,int((self.grid_spacing / self.camera_distance) * self.fx))
+            color = (self.params.grid_color['b'], self.params.grid_color['g'], self.params.grid_color['r'])
+            DrawFrame.drawGrid(image,spacing_in_px, color=color)
         return image
 
     def runServer(self):

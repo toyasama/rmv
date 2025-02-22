@@ -2,15 +2,12 @@ from dataclasses import dataclass
 import numpy as np
 import tf_transformations as tf
 from typing import Tuple
-from ..parameters.params import VisualizationParams
+from ..parameters.params import VisualizationParameters
 
 class CameraExtrinsics:
     """Extrinsic parameters of the camera."""
-    def __init__(self, x: float, y: float, z: float, theta: float):
-        self.__x: float = x
-        self.__y: float = y
-        self.__z: float = z
-        self.__theta: float = theta
+    def __init__(self, params: VisualizationParameters):
+        self.params = params
     
     @property
     def extrinsic_matrix(self) -> np.ndarray:
@@ -19,25 +16,27 @@ class CameraExtrinsics:
         Returns:
             The extrinsic transformation matrix as a NumPy array.
         """
+        x, y, z, theta = self.params.camera_position
+        theta = np.deg2rad(theta)
         T = np.eye(4)
-        T[:3, 3] = np.array([self.__x, self.__y, self.__z])
-        T[:3, :3] = tf.rotation_matrix(np.pi, [1, 0, 0])[:3, :3] @ tf.rotation_matrix(self.__theta, [0, 0, 1])[:3, :3]
+        T[:3, 3] = np.array([x, y, z])
+        T[:3, :3] = tf.rotation_matrix(np.pi, [1, 0, 0])[:3, :3] @ tf.rotation_matrix(theta, [0, 0, 1])[:3, :3]
         return T
 
 class CameraIntrinsics:
     """Intrinsic parameters of the camera."""
-    def __init__(self, width: int, height: int, fov: float):
-        self.__width: int = width
-        self.__height: int = height
-        self.__fov: float = fov
-
+    def __init__(self,  params: VisualizationParameters):
+        self.params = params
+        
     @property
     def intrinsic_matrix(self) -> np.ndarray:
         """Computes the camera's intrinsic matrix."""
-        fx = self.__width / (2 * np.tan(self.__fov / 2))
+        width, height, fov_deg = self.params.resolution
+        fov = np.deg2rad(fov_deg)
+        fx = width / (2 * np.tan(fov / 2))
         fy = fx
-        cx = self.__width / 2
-        cy = self.__height / 2
+        cx = width / 2
+        cy = height / 2
         return np.array([[fx, 0, cx],
                          [0, fy, cy],
                          [0, 0, 1]])
@@ -47,9 +46,10 @@ class CameraManager:
     Handles all camera-related operations such as intrinsic and extrinsic matrix calculation,
     and point projection between world and camera coordinates.
     """
-    def __init__(self, params: VisualizationParams):
-        self.__intrinsics = CameraIntrinsics(params.width, params.height, np.deg2rad(60))
-        self.__extrinsics = CameraExtrinsics(0, 0, 5, 0)
+    def __init__(self, params: VisualizationParameters):
+        self.__intrinsics = CameraIntrinsics(params)
+        self.__extrinsics = CameraExtrinsics(params)
+        self.__params = params
     
     def worldToCamera(self, point: np.ndarray) -> np.ndarray:
         """Converts a world point to camera coordinates."""
@@ -71,6 +71,12 @@ class CameraManager:
     def fx(self) -> float:
         """Gets the focal length in the x-direction."""
         return self.__intrinsics.intrinsic_matrix[0, 0]
+    
+    @property
+    def fov(self) -> float:
+        """Gets the camera's field of view."""
+        return np.deg2rad(self.__params.resolution[2])
+    
     
     @property
     def camera_distance(self) -> float:

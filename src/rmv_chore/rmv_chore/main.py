@@ -1,12 +1,14 @@
 import rclpy
+from pathlib import Path 
 from rclpy.node import Node
-from time import time, sleep
+from time import time
 from typing import List, Dict
 
 from std_msgs.msg import ColorRGBA
 from library import (TransformDrawerInfo, TransformGraph, MarkerRmv, TFManager, MarkersHandler, TopicManager, TransformUtils)
 from visualization.visualization import Visualization
-from library import VisualizationParams
+from library import RmvParameters, VisualizationParameters
+
 
 
 class RMVChoreNode(Node):
@@ -15,17 +17,18 @@ class RMVChoreNode(Node):
         Initialise le nœud RMV Chore, ainsi que ses gestionnaires de TF, marqueurs et visualisation.
         """
         super().__init__("rmv_chore", namespace="rmv")
-
+        parent_dir = Path(__file__).resolve().parent.parent
+        paremeter_file = parent_dir / "config" / "params.yml"
+        self.parameters = RmvParameters(str(paremeter_file))
+        self._updateZPositionParameter(10)
         self.transform_graph = TransformGraph()
         self.tf_manager = TFManager(self, self.transform_graph)
         self.markers_handler = MarkersHandler(self)
 
-        background_color = ColorRGBA(r=0.1, g=0.1, b=0.1, a=1.0)
-        visu_params = VisualizationParams(width=800, height=600, fps=30, background_color=background_color)
-        self.visualization = Visualization(self, visu_params, self.transform_graph)
+        self.visualization = Visualization(self, self.parameters.visualization, self.transform_graph)
         self.topic_manager = TopicManager(self, self.markers_handler)
-
-        self.create_timer(0.03, self.visualize)
+        period = 1/self.parameters.visualization.fps
+        self.create_timer(period, self.visualize)
         self.get_logger().info("RMV Chore node initialized successfully.")
 
     def projectToMainFrame(self, markers: List[MarkerRmv], transforms: List[TransformDrawerInfo]) -> List[MarkerRmv]:
@@ -56,7 +59,17 @@ class RMVChoreNode(Node):
         self.visualization.visualize(markers)
         # self.get_logger().info(f"Visualization update time: {time() - start_time:.3f}s")
 
-
+    def _updateZPositionParameter(self, z: int):
+        """
+        Met à jour la largeur de l'image dans les paramètres de visualisation.
+        """
+        self.parameters.set(z, "RMV", "visualizations", "camera", "position", "z" )
+    
+    def _updateThetaPositionParameter(self, theta_deg: int):
+        """
+        Met à jour la largeur de l'image dans les paramètres de visualisation.
+        """
+        self.parameters.set(theta_deg, "RMV", "visualizations", "camera", "position", "theta" )
 def main():
     rclpy.init()
     node = RMVChoreNode()

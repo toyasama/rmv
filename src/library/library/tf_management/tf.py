@@ -2,7 +2,6 @@ from typing import List
 from rclpy.node import Node
 from rclpy.time import Duration
 from tf2_msgs.msg import TFMessage
-from ..utils.timer_log import TimerLogger
 from threading import Thread, Lock
 from time import sleep
 from ..tf_management.graph import TransformGraph
@@ -14,7 +13,6 @@ class TFManager():
         """
         super().__init__()
         self.node = node
-        self.timer_logger = TimerLogger(self.node, 2.0)
 
         self.transform_graph = transform_graph
         

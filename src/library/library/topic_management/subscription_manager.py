@@ -4,7 +4,6 @@ from rclpy.subscription import Subscription
 from visualization_msgs.msg import Marker, MarkerArray
 from typing import Type, List, Dict
 from ..markers_management.markers import  MarkersHandler
-from ..utils.timer_log import TimerLogger
 
 class SubscriptionManager():
     def __init__(self, node: Node, markers_handler: MarkersHandler):
@@ -15,7 +14,6 @@ class SubscriptionManager():
         """
         self._node = node
         self.__subscriptions: Dict[str, Subscription] = {}
-        self.timer_logger : TimerLogger= TimerLogger( node, 5.0)
         self.marker_handler = markers_handler
 
     @property

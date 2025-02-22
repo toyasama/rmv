@@ -1,0 +1,21 @@
+RMV:
+  visualizations:
+    background_color:
+      b: 0
+      g: 0
+      r: 0
+    camera:
+      fov_deg: 60
+      position:
+        theta: 0
+        x: 0
+        y: 0
+        z: 10
+    draw_grid: true
+    fps: 30
+    grid_color:
+      b: 125
+      g: 125
+      r: 125
+    height: 500
+    width: 800

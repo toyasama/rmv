@@ -87,8 +87,6 @@ class MarkerRmvBase:
         """Vérifie si le marker a expiré."""
         expiration_time = self.lifetime.sec + (self.lifetime.nanosec * 1e-9) + self._pub_time.sec + (self._pub_time.nanosec * 1e-9)
         current_time_in_seconds = current_time.sec + (current_time.nanosec * 1e-9)
-        difference = current_time_in_seconds - expiration_time
-        # print(f"Expiration time: {expiration_time}, Current time: {current_time_in_seconds} Difference: {difference}")
         return current_time_in_seconds > expiration_time
 
 1740216468.4591227,
@@ -164,7 +162,6 @@ class MarkersHandler:
         args:
             marker (Marker | MarkerArray): The marker to be added.
         """
-        start_time = time.time()
         with self.__lock_new_msgs:
             self.__new_msgs.append(marker)
         

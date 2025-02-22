@@ -1,7 +1,6 @@
 from rclpy.node import Node
 from typing import  Tuple, List
 from .subscription_manager import SubscriptionManager
-from ..utils.timer_log import TimerLogger
 from ..markers_management.markers import  MarkersHandler
 
 class TopicManager(SubscriptionManager):
@@ -13,7 +12,6 @@ class TopicManager(SubscriptionManager):
         """
         SubscriptionManager.__init__(self, node, markers_handler)
         node.create_timer(0.1, self.__findMarkersTopicsCallBack) 
-        self.timer_logger_2: TimerLogger = TimerLogger( node, 5.0)
         node.get_logger().info("TopicManager created successfully")
 
     def __findMarkersTopicsCallBack(self) -> None:
