@@ -21,7 +21,7 @@ class MarkerRmvBase:
             reception_time (Time): Le moment où le marker a été reçu.
         """
         self._marker = marker 
-        self._pub_time = marker.header.stamp  
+        self._pub_time = reception_time
         self._modified_pose = None  
         
     @property

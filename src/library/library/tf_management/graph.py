@@ -149,6 +149,7 @@ class TransformGraph(BaseGraph):
         with self._graph_lock:
             for parent, child in self._graph.edges:
                 edge_data: RmvTransform = self._graph[parent][child]["frameInfo"]
-                if edge_data.drawer_info.main_frame == self._main_frame and edge_data.drawer_info.transform_name in self.rmv_params.frames.sub_frames:
+                if edge_data.drawer_info.main_frame == self._main_frame:
                     drawer_list.append(edge_data.drawer_info)
             return drawer_list 
+        
