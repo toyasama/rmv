@@ -10,7 +10,7 @@ DIRECTORIES=(
     "library/utils/"
 )
 
-pyreverse -o puml  --all-ancestors --filter-mode ALL --colorized --no-standalone "${DIRECTORIES[@]}"
+pyreverse -o puml  --filter-mode ALL --colorized --no-standalone "${DIRECTORIES[@]}"
 
 if [ $? -eq 0 ]; then
     echo "Diagramme UML généré avec succès !"

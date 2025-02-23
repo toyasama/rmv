@@ -1,29 +1,57 @@
 @startuml packages
 set namespaceSeparator none
-package "library.markers_management.data_manager" as library.markers_management.data_manager #77AADD {
+package "library.parameters.frame_parameter" as library.parameters.frame_parameter #77AADD {
 }
-package "library.markers_management.markers" as library.markers_management.markers #77AADD {
+package "library.parameters.params" as library.parameters.params #77AADD {
+}
+package "library.parameters.visualization_parameter" as library.parameters.visualization_parameter #77AADD {
 }
 package "library.tf_management.graph" as library.tf_management.graph #99DDFF {
 }
-package "library.tf_management.tf" as library.tf_management.tf #99DDFF {
+package "library.tf_management.transform_rmv" as library.tf_management.transform_rmv #99DDFF {
 }
-package "library.tf_management.transform" as library.tf_management.transform #99DDFF {
+package "library.tf_management.transform_utils" as library.tf_management.transform_utils #99DDFF {
 }
 package "library.topic_management.subscription_manager" as library.topic_management.subscription_manager #44BB99 {
 }
 package "library.topic_management.topic_manager" as library.topic_management.topic_manager #44BB99 {
 }
-package "rmv_chore.main" as rmv_chore.main #BBCC33 {
+package "library.utils.camera" as library.utils.camera #BBCC33 {
 }
-package "rmv_chore.rmv_chore" as rmv_chore.rmv_chore #BBCC33 {
+package "library.utils.drawers" as library.utils.drawers #BBCC33 {
 }
-package "visualization.visualization" as visualization.visualization #AAAA00 {
+package "library.utils.drawers_tools" as library.utils.drawers_tools #BBCC33 {
 }
-library.markers_management.data_manager --> library.markers_management.markers
-library.tf_management.graph --> library.tf_management.transform
-library.tf_management.tf --> library.tf_management.graph
+package "library.utils.drawers_tools.arrow" as library.utils.drawers_tools.arrow #BBCC33 {
+}
+package "library.utils.drawers_tools.cube" as library.utils.drawers_tools.cube #BBCC33 {
+}
+package "library.utils.drawers_tools.cylinder" as library.utils.drawers_tools.cylinder #BBCC33 {
+}
+package "library.utils.drawers_tools.grid" as library.utils.drawers_tools.grid #BBCC33 {
+}
+package "library.utils.drawers_tools.line_strip" as library.utils.drawers_tools.line_strip #BBCC33 {
+}
+package "library.utils.drawers_tools.sphere" as library.utils.drawers_tools.sphere #BBCC33 {
+}
+package "library.utils.frame_position" as library.utils.frame_position #BBCC33 {
+}
+package "rmv_chore.main" as rmv_chore.main #AAAA00 {
+}
+package "visualization.visualization" as visualization.visualization #EEDD88 {
+}
+library.parameters.params --> library.parameters.frame_parameter
+library.parameters.params --> library.parameters.visualization_parameter
+library.tf_management.graph --> library.tf_management.transform_rmv
+library.tf_management.graph --> library.tf_management.transform_utils
 library.topic_management.topic_manager --> library.topic_management.subscription_manager
+library.utils.drawers --> library.utils.camera
+library.utils.drawers --> library.utils.frame_position
+library.utils.drawers_tools --> library.utils.drawers_tools.arrow
+library.utils.drawers_tools --> library.utils.drawers_tools.cube
+library.utils.drawers_tools --> library.utils.drawers_tools.cylinder
+library.utils.drawers_tools --> library.utils.drawers_tools.grid
+library.utils.drawers_tools --> library.utils.drawers_tools.line_strip
+library.utils.drawers_tools --> library.utils.drawers_tools.sphere
 rmv_chore.main --> visualization.visualization
-rmv_chore.rmv_chore --> visualization.visualization
 @enduml
