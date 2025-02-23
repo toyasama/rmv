@@ -1,9 +1,9 @@
 RMV:
   visualizations:
     background_color:
-      b: 0
-      g: 0
-      r: 0
+      b: 25
+      g: 25
+      r: 25
     camera:
       fov_deg: 60
       position:
@@ -19,3 +19,12 @@ RMV:
       r: 125
     height: 500
     width: 800
+    grid_spacing: 0.5 # m
+  
+  frames:
+    main_frame: "frame_1"
+    sub_frames: [frame_2, frame_3]
+    show_axes: true
+    show_frame_names: true
+    show_connections: true
+    axes_length: 0.1 # m

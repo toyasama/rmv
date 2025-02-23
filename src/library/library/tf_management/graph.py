@@ -6,14 +6,16 @@ from geometry_msgs.msg import Transform, TransformStamped
 from .transform_utils import TransformUtils
 from .transform_rmv import RmvTransform, TransformDrawerInfo
 from abc import ABC, abstractmethod
+from ..parameters.params import RmvParameters
 
 class BaseGraph(ABC):
     """Base class managing a directed graph with thread-safe operations."""
-    def __init__(self):
+    def __init__(self,  rmv_params: RmvParameters):
+        self.rmv_params = rmv_params   
         self._graph = nx.DiGraph()
         self._graph_lock = RLock()
         self._running = True
-        self._main_frame: str = ""
+        self._main_frame: str = rmv_params.frames.main_frame
         self._lock_main_frame = RLock()
         self.count = 0
         self.begin = time.time()
@@ -30,7 +32,6 @@ class BaseGraph(ABC):
         while self._running:
             self._update()
             self._removeExpiredEdges()
-            self.setDefaultMainFrame()
             time.sleep(0.1)
 
     @abstractmethod
@@ -49,14 +50,10 @@ class BaseGraph(ABC):
             for u, v in to_remove:
                 self._graph.remove_edge(u, v)
 
-    @abstractmethod
-    def setDefaultMainFrame(self):
-        pass
-            
 class TransformGraph(BaseGraph):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self,  rmv_params: RmvParameters):
+        super().__init__(rmv_params)
     
     """Graph that manages frame transforms."""
     def addTransform(self, transform_stamped: TransformStamped, static: bool = False):
@@ -95,6 +92,7 @@ class TransformGraph(BaseGraph):
     
     def _update(self):
         """Periodically update transforms and evaluate transforms from the main frame."""
+        self._main_frame = self.rmv_params.frames.main_frame
         if self._main_frame not in self._graph:
             return
         with self._graph_lock:
@@ -137,27 +135,11 @@ class TransformGraph(BaseGraph):
         """Retrieve all frames in the graph."""
         with self._graph_lock:
             return list(self._graph.nodes)
-
-    def setDefaultMainFrame(self):
-        """
-        Set the main TF frame to the first available frame if ones.
-        """
-        frames =  self.frames
-        if not frames:
-            return
-        with self._lock_main_frame:
-            if frames and frames[self.count] != self._main_frame:
-                self._main_frame = frames[self.count]
-                print(f"Main frame set to: {self._main_frame}")
-        elapsed = time.time() - self.begin
-        if elapsed > 10.0 and frames:
-            self.begin = time.time()
-            self.count = (self.count +1) % len(frames)
     
     @property
     def main_frame(self):
         with self._lock_main_frame:
-            return str(self._main_frame)
+            return str(self._main_frame) if self._main_frame in self._graph else None
             
     def getTransformsFromMainFrame(self)->List[TransformDrawerInfo]:
         """
@@ -167,6 +149,6 @@ class TransformGraph(BaseGraph):
         with self._graph_lock:
             for parent, child in self._graph.edges:
                 edge_data: RmvTransform = self._graph[parent][child]["frameInfo"]
-                if edge_data.drawer_info.main_frame == self._main_frame:
+                if edge_data.drawer_info.main_frame == self._main_frame and edge_data.drawer_info.transform_name in self.rmv_params.frames.sub_frames:
                     drawer_list.append(edge_data.drawer_info)
-            return drawer_list
+            return drawer_list 

@@ -1,50 +1,32 @@
 import yaml
 import os
 from dataclasses import dataclass
-from typing import Dict
+from .visualization_parameter import VisualizationParameters
+from .frame_parameter import FramesParameters
+from typing import Dict, Any
 
 @dataclass
-class VisualizationParameters:
-    width: int = 100
-    height: int = 100
-    fps: int = 30
-    draw_grid: bool = True
-    background_color: Dict[str, int] = None
-    grid_color: Dict[str, int] = None
-    camera: Dict[str, Dict[str, int]] = None
-
-    def __post_init__(self):
-        if self.background_color is None:
-            self.background_color = {'r': 0, 'g': 0, 'b': 0}
-        if self.grid_color is None:
-            self.grid_color = {'r': 255, 'g': 255, 'b': 255}
-        if self.camera is None:
-            self.camera = {'position': {'x': 0, 'y': 0, 'z': 0, 'theta':0}, 'fov_deg': 60}
-
-    @property
-    def resolution(self):
-        return self.width, self.height, self.camera['fov_deg']
-
-    @resolution.setter
-    def resolution(self, value):
-        self.width, self.height = value
-        
-    @property
-    def camera_position(self):
-        return [self.camera['position'][key] for key in ['x', 'y', 'z', 'theta']]
-    
 class RmvParameters:
     def __init__(self, path: str):
         self.__path = path
-        self.data = self._loadYaml()
-        print(self.data)
-        self.visualization = VisualizationParameters(**self.data.get('RMV', {}).get('visualizations', {}))
+        data = self._loadYaml()
+        print(data)
+        
+        self.visualization = VisualizationParameters()
+        self.frames = FramesParameters()
+        
+        visualization_data = data.get('RMV', {}).get('visualizations', {})
+        frames_data = data.get('RMV', {}).get('frames', {})
+        
+        self._update_visualization(visualization_data)
+        self._update_frames(frames_data)
 
     def _loadYaml(self) -> Dict:
         """
         Load the YAML file and apply default values if necessary.
         Returns:
-            The loaded data as a dictionary."""
+            The loaded data as a dictionary.
+        """
         if not os.path.exists(self.__path):
             print(f"File {self.__path} not found, creating an empty file.")
             return {}
@@ -59,14 +41,11 @@ class RmvParameters:
         return self._applyDefaults(data)
 
     def _applyDefaults(self, data: Dict) -> Dict:
-        """Apply default values if some keys are missing.
-        Args:
-            data: The loaded data as a dictionary.
-        Returns:
-            The updated data as a dictionary."""
+        """Apply default values if some keys are missing."""
         defaults = {
             'RMV': {
-                'visualizations': VisualizationParameters().__dict__
+                'visualizations': {},
+                'frames': {}
             }
         }
         return self._mergeDefaults(defaults, data)
@@ -74,11 +53,6 @@ class RmvParameters:
     def _mergeDefaults(self, defaults: Dict, data: Dict) -> Dict:
         """
         Merge default values with those loaded from the file.
-        Args:
-            defaults: The default values as a dictionary.
-            data: The loaded data as a dictionary.
-        Returns:
-            The updated data as a dictionary.
         """
         if isinstance(defaults, dict) and isinstance(data, dict):
             for key, value in defaults.items():
@@ -87,7 +61,44 @@ class RmvParameters:
                     data[key] = value
                 else:
                     data[key] = self._mergeDefaults(value, data[key])
+        return self.convertData(data)
+    
+    def convertData(self, data: Any) -> Any:
+        if isinstance(data, str):
+            if data.lower() in ['true', 'false']:
+                return data.lower() == 'true'
         return data
+
+    def _update_visualization(self, data: Dict[str, Any]) -> None:
+        if 'width' in data:
+            self.visualization.width = data['width']
+        if 'height' in data:
+            self.visualization.height = data['height']
+        if 'fps' in data:
+            self.visualization.fps = data['fps']
+        if 'grid_spacing' in data:
+            self.visualization.grid_spacing = data['grid_spacing']
+        if 'background_color' in data:
+            self.visualization.updateBackgroundColor(**data['background_color'])
+        if 'camera' in data and 'position' in data['camera']:
+            self.visualization.updateCameraPosition(**data['camera']['position'])
+        if 'camera' in data and 'fov_deg' in data['camera']:
+            self.visualization.fov = data['camera']['fov_deg']
+
+    def _update_frames(self, data: Dict[str, Any]) -> None:
+        if 'main_frame' in data:
+            self.frames.main_frame = data['main_frame']
+        if 'sub_frames' in data:
+            if isinstance(data['sub_frames'], list):
+                self.frames.updateSubFrame(data['sub_frames'])
+        if 'show_axes' in data:
+            self.frames.toggleAxes() if self.frames.show_axes != data['show_axes'] else None
+        if 'show_frame_names' in data:
+            self.frames.toggleFrameNames() if self.frames.show_frame_names != data['show_frame_names'] else None
+        if 'show_connections' in data:
+            self.frames.toggleConnections() if self.frames.show_connections != data['show_connections'] else None
+        if 'axes_length' in data:
+            self.frames.axes_length = data['axes_length']
 
     def get(self, *keys):
         """Retrieve a value from the given keys."""

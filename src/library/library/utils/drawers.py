@@ -5,17 +5,83 @@ import cv2
 from . import drawers_tools
 from typing import Tuple
 from visualization_msgs.msg import Marker
+from ..tf_management.transform_rmv import TransformDrawerInfo
+from ..parameters.params import RmvParameters
+
 
 class DrawFrame:
     
     @staticmethod
-    def drawFrame(image: np.ndarray, frames_position: FramesPosition ):
+    def drawMainFrame(camera_manager: CameraManager, image: np.ndarray,main_tf: str, parameters : RmvParameters ):
+
+        frame_pos = np.array([0, 0, 0]) 
+        frame_pos_x_end = frame_pos + np.array([parameters.frames.axes_length, 0, 0])
+        frame_pos_y_end = frame_pos + np.array([0, parameters.frames.axes_length, 0])
+
+        proj_x_end = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos_x_end))
+        proj_y_end = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos_y_end))
+        proj = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos))
+        frames_position = FramesPosition(main_tf,proj, proj_x_end, proj_y_end, 1)
+        if proj:
+            DrawFrame.drawFrame(image, frames_position, parameters)
+            
+    
+    @staticmethod
+    def projectAndDrawFrame(camera_manager: CameraManager,image : np.ndarray, transform_info: TransformDrawerInfo, parameters : RmvParameters)->FramesPosition:
+        """
+        Projects a 3D point to the image plane using the intrinsic matrix.
+        Args:
+            point: The 3D point to project.
+        Returns:
+            The 2D point on the image plane.
+        """
+        
+        quat_array = np.array([transform_info.pose_in_main_frame.rotation.w, 
+                            transform_info.pose_in_main_frame.rotation.x, 
+                            transform_info.pose_in_main_frame.rotation.y, 
+                            transform_info.pose_in_main_frame.rotation.z])  
+
+        # rot_mat = quat.quat2mat(quat_array)
+        #TODO: check if the rotation is correct
+
+        frame_pos = np.array([transform_info.pose_in_main_frame.translation.x, 
+                            transform_info.pose_in_main_frame.translation.y, 
+                            transform_info.pose_in_main_frame.translation.z]) 
+         
+        frame_pos_x_end = frame_pos + np.array([parameters.frames.axes_length, 0, 0])
+        frame_pos_y_end = frame_pos + np.array([0, parameters.frames.axes_length, 0])
+
+        proj_x_end = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos_x_end))
+        proj_y_end = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos_y_end))
+        proj = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos))
+        show_one_end = transform_info.transform_name in parameters.frames.sub_frames or transform_info.transform_name in parameters.frames.main_frame
+        show_other_end = transform_info.parent in parameters.frames.sub_frames or transform_info.parent in parameters.frames.main_frame
+            
+        if parameters.frames.show_connections and show_one_end and show_other_end:
+            start_connection =np.array([transform_info.start_connection.translation.x, transform_info.start_connection.translation.y, transform_info.start_connection.translation.z])
+            end_connection =np.array([transform_info.end_connection.translation.x, transform_info.end_connection.translation.y, transform_info.end_connection.translation.z])
+            
+            proj_start_connection = camera_manager.projectToImage(camera_manager.worldToCamera(start_connection))
+            proj_end_connection = camera_manager.projectToImage(camera_manager.worldToCamera(end_connection))
+        else :
+            proj_start_connection = None
+            proj_end_connection = None
+            
+        frames_position = FramesPosition( transform_info.transform_name, proj, proj_x_end, proj_y_end,transform_info.opacity, proj_start_connection, proj_end_connection)
+        if proj:
+            DrawFrame.drawFrame(image, frames_position, parameters)
+        else:
+            print("Frame not in view")
+    
+    @staticmethod
+    def drawFrame(image: np.ndarray, frames_position: FramesPosition, parameters : RmvParameters) -> None:
         """
         Draws a reference frame with a small circle and optional label.
         """
         
-        DrawFrame._drawAxes(image, frames_position, frames_position.opacity) #TODO: fix text opacity
-        if frames_position.name:
+        if parameters.frames.show_axes:
+            DrawFrame._drawAxes(image, frames_position, frames_position.opacity) #TODO: fix text opacity
+        if frames_position.name and parameters.frames.show_frame_names:
             DrawFrame.drawText(image, frames_position.name, (frames_position.start[0] + 10, frames_position.start[1] + 10), opacity=frames_position.opacity)
 
         if frames_position.start_connection and frames_position.end_connection:

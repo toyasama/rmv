@@ -62,6 +62,10 @@ class TransformDrawerInfo():
     def transform_name(self) -> str:
         return self.__associated_transform.name
     
+    @property
+    def parent(self) -> str:
+        return self.__associated_transform.parent
+    
     @property  
     def pose_in_main_frame(self) -> Transform:
         return self._pose_in_main_frame

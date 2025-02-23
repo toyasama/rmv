@@ -3,142 +3,29 @@ import cv2
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSDurabilityPolicy, QoSReliabilityPolicy
-from library import( VisualizationParameters,  MarkerRmv, CameraManager, TransformDrawerInfo, TransformGraph)
-from library import( DrawFrame, DrawMarkers, FramesPosition)
+from library import( RmvParameters,  MarkerRmv, CameraManager, TransformDrawerInfo, TransformGraph)
+from library import( DrawFrame, DrawMarkers)
 from typing import List
 from sensor_msgs.msg import  Image
 from flask import Flask, Response
 import threading
 from time import sleep
 
-class Visualization(CameraManager):
-    pass
-    def __init__(self, node: Node, params: VisualizationParameters, transform_graph: TransformGraph):
-        """
-        Initializes the visualization object, inheriting from CameraManager, with an option to draw a grid.
-        """
-        super().__init__(params)
-        self.params = params
-        self.node = node
-        self.bridge = CvBridge()
-        qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, durability=QoSDurabilityPolicy.VOLATILE, reliability=QoSReliabilityPolicy.BEST_EFFORT)
-        self.grid_spacing = 0.5
-        self.axes_distance = 0.1
-        self.image = self.createNewImage()
-        self.transform_graph = transform_graph
-        self.publisher_raw = self.node.create_publisher(Image, "visualization_image", qos)
-        
+class WebServer:
+    def __init__(self):
+        self.image = np.zeros((100, 100, 3), dtype=np.uint8)
         self.app = Flask(__name__)
         self.app.add_url_rule('/video_feed', 'video_feed', self.videoFeed)
         self.server_thread = threading.Thread(target=self.runServer, daemon=True)
         self.server_thread.start()
-        self.node.get_logger().info("Visualization initialized successfully.")
         
-    def drawMainFrame(self, image: np.ndarray,main_tf: str ):
-
-
-        frame_pos = np.array([0, 0, 0]) 
+    def updateImage(self, image: np.ndarray):
+        self.image = image
         
-
-        frame_pos_x_end = frame_pos + np.array([self.axes_distance, 0, 0])
-        frame_pos_y_end = frame_pos + np.array([0, self.axes_distance, 0])
-
-        proj_x_end = self.projectToImage(self.worldToCamera(frame_pos_x_end))
-        proj_y_end = self.projectToImage(self.worldToCamera(frame_pos_y_end))
-        proj = self.projectToImage(self.worldToCamera(frame_pos))
-        frames_position = FramesPosition(main_tf,proj, proj_x_end, proj_y_end, 1)
-        if proj:
-            DrawFrame.drawFrame(image, frames_position)
-            
-    def projectAndDrawFrame(self,image :Image, transform_info: TransformDrawerInfo)->FramesPosition:
-        """
-        Projects a 3D point to the image plane using the intrinsic matrix.
-        Args:
-            point: The 3D point to project.
-        Returns:
-            The 2D point on the image plane.
-        """
-        
-        quat_array = np.array([transform_info.pose_in_main_frame.rotation.w, 
-                            transform_info.pose_in_main_frame.rotation.x, 
-                            transform_info.pose_in_main_frame.rotation.y, 
-                            transform_info.pose_in_main_frame.rotation.z])  
-
-        # rot_mat = quat.quat2mat(quat_array)
-        #TODO: check if the rotation is correct
-
-        frame_pos = np.array([transform_info.pose_in_main_frame.translation.x, 
-                            transform_info.pose_in_main_frame.translation.y, 
-                            transform_info.pose_in_main_frame.translation.z]) 
-        
-         
-        frame_pos_x_end = frame_pos + np.array([self.axes_distance, 0, 0])
-        frame_pos_y_end = frame_pos + np.array([0, self.axes_distance, 0])
-
-        proj_x_end = self.projectToImage(self.worldToCamera(frame_pos_x_end))
-        proj_y_end = self.projectToImage(self.worldToCamera(frame_pos_y_end))
-        proj = self.projectToImage(self.worldToCamera(frame_pos))
-
-        start_connection =np.array([transform_info.start_connection.translation.x, transform_info.start_connection.translation.y, transform_info.start_connection.translation.z])
-        end_connection =np.array([transform_info.end_connection.translation.x, transform_info.end_connection.translation.y, transform_info.end_connection.translation.z])
-        
-        proj_start_connection = self.projectToImage(self.worldToCamera(start_connection))
-        proj_end_connection = self.projectToImage(self.worldToCamera(end_connection))
-        frames_position = FramesPosition( transform_info.transform_name, proj, proj_x_end, proj_y_end,transform_info.opacity, proj_start_connection, proj_end_connection)
-        if proj:
-            DrawFrame.drawFrame(image, frames_position)
-        else:
-            print("Frame not in view")
-
-    def generateCameraView(self,  markers: List[MarkerRmv]):
-        """Generates an image centered on `main_tf` with a grid in the background."""
-        
-        image = self.createNewImage()
-        
-        main_frame = self.transform_graph.main_frame
-        if not main_frame:
-            return image  
-
-        self.drawMainFrame(image, main_frame)
-        tf_drawer_info: List[TransformDrawerInfo] = self.transform_graph.getTransformsFromMainFrame()
-
-        for frame in tf_drawer_info:
-            self.projectAndDrawFrame(image, frame)
-
-        DrawMarkers.drawMarkers(image, markers, self)
-        return image
-
-
-# web visualization
-    def isWithinBounds(self, point):
-        """Checks if the projected point is within the image bounds."""
-        x, y = point
-        self.node.get_logger().info(f"Point: {x}, {y}")
-        return 0 <= x < self.params.width and 0 <= y < self.params.height
-
-    def visualize(self, markers: List[MarkerRmv]):
-        """Génère et publie l'image en format brut et compressé."""
-        self.image = self.generateCameraView( markers)
-
-        ros_image = self.bridge.cv2_to_imgmsg(self.image, encoding="bgr8")
-        self.publisher_raw.publish(ros_image)
-        
-    def createNewImage(self):
-        """Creates a new image with a black background."""
-        image = np.full((self.params.height, self.params.width, 3), (0, 0, 0), dtype=np.uint8)
-        
-        if self.params.draw_grid:
-            spacing_in_px = max(1 ,int((self.grid_spacing / self.camera_distance) * self.fx))
-            color = (self.params.grid_color['b'], self.params.grid_color['g'], self.params.grid_color['r'])
-            DrawFrame.drawGrid(image,spacing_in_px, color=color)
-        return image
-
     def runServer(self):
-        """Lance le serveur Flask."""
         self.app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
 
     def generateFrames(self):
-        """Génère les images pour le flux vidéo."""
         while True:
             _, jpeg = cv2.imencode('.jpg', self.image)
             frame = jpeg.tobytes()
@@ -147,5 +34,56 @@ class Visualization(CameraManager):
             sleep(0.03)
 
     def videoFeed(self):
-        """Route Flask pour le flux vidéo."""
         return Response(self.generateFrames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+class Visualization(CameraManager):
+    def __init__(self, node: Node, params: RmvParameters, transform_graph: TransformGraph):
+        """
+        Initializes the visualization object, inheriting from CameraManager, with an option to draw a grid.
+        """
+        super().__init__(params.visualization)
+        self.rmv_params = params
+        self.node = node
+        self.bridge = CvBridge()
+        qos = QoSProfile(history=QoSHistoryPolicy.KEEP_LAST, depth=1, durability=QoSDurabilityPolicy.VOLATILE, reliability=QoSReliabilityPolicy.BEST_EFFORT)
+        self.image = self.resetImage()
+        self.transform_graph = transform_graph
+        self.publisher_raw = self.node.create_publisher(Image, "visualization_image", qos)
+        self.web_server = WebServer()
+        self.node.get_logger().info("Visualization initialized successfully.")
+        
+
+    def updateImage(self,  markers: List[MarkerRmv]):
+        """Generates an image centered on `main_tf` with a grid in the background."""
+        
+        self.resetImage()
+        main_frame = self.transform_graph.main_frame
+        if not main_frame:
+            return 
+
+        DrawFrame.drawMainFrame(self,self.image, main_frame, self.rmv_params)
+        tf_drawer_info: List[TransformDrawerInfo] = self.transform_graph.getTransformsFromMainFrame()
+
+        for frame in tf_drawer_info:
+            DrawFrame.projectAndDrawFrame(self,self.image, frame, self.rmv_params)
+
+        DrawMarkers.drawMarkers(self.image, markers, self)
+
+    def resetImage(self):
+        """Creates a new image with a black background."""
+        background_color = (self.rmv_params.visualization.background_color['b'], self.rmv_params.visualization.background_color['g'], self.rmv_params.visualization.background_color['r'])
+        self.image = np.full((self.rmv_params.visualization.height, self.rmv_params.visualization.width, 3), background_color, dtype=np.uint8)
+        
+        if self.rmv_params.visualization.draw_grid:
+            spacing_in_px = max(1 ,int((self.rmv_params.visualization.grid_spacing / self.camera_distance) * self.fx))
+            grid_color = (self.rmv_params.visualization.grid_color['b'], self.rmv_params.visualization.grid_color['g'], self.rmv_params.visualization.grid_color['r'])
+            DrawFrame.drawGrid(self.image,spacing_in_px, color=grid_color)
+
+    def visualize(self, markers: List[MarkerRmv]):
+        """Génère et publie l'image en format brut et compressé."""
+        self.updateImage( markers)
+        self.web_server.updateImage(self.image)
+        ros_image = self.bridge.cv2_to_imgmsg(self.image, encoding="bgr8")
+        self.publisher_raw.publish(ros_image)
+        
