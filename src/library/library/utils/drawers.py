@@ -12,7 +12,7 @@ from ..parameters.params import RmvParameters
 class DrawFrame:
     
     @staticmethod
-    def drawMainFrame(camera_manager: CameraManager, image: np.ndarray,main_tf: str, parameters : RmvParameters ):
+    def drawMainFrame(camera_manager: CameraManager, image: np.ndarray,main_tf: str, parameters : RmvParameters, thickness: int ):
 
         frame_pos = np.array([0, 0, 0]) 
         frame_pos_x_end = frame_pos + np.array([parameters.frames.axes_length, 0, 0])
@@ -23,11 +23,11 @@ class DrawFrame:
         proj = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos))
         frames_position = FramesPosition(main_tf,proj, proj_x_end, proj_y_end, 1)
         if proj:
-            DrawFrame.drawFrame(image, frames_position, parameters)
+            DrawFrame.drawFrame(image, frames_position, parameters, thickness)
             
     
     @staticmethod
-    def projectAndDrawFrame(camera_manager: CameraManager,image : np.ndarray, transform_info: TransformDrawerInfo, parameters : RmvParameters)->FramesPosition:
+    def projectAndDrawFrame(camera_manager: CameraManager,image : np.ndarray, transform_info: TransformDrawerInfo, parameters : RmvParameters, thickness: int)->FramesPosition:
         """
         Projects a 3D point to the image plane using the intrinsic matrix.
         Args:
@@ -69,23 +69,23 @@ class DrawFrame:
             
         frames_position = FramesPosition( transform_info.transform_name, proj, proj_x_end, proj_y_end,transform_info.opacity, proj_start_connection, proj_end_connection)
         if proj:
-            DrawFrame.drawFrame(image, frames_position, parameters)
+            DrawFrame.drawFrame(image, frames_position, parameters, thickness)
         else:
             print("Frame not in view")
     
     @staticmethod
-    def drawFrame(image: np.ndarray, frames_position: FramesPosition, parameters : RmvParameters) -> None:
+    def drawFrame(image: np.ndarray, frames_position: FramesPosition, parameters : RmvParameters, thickness:int) -> None:
         """
         Draws a reference frame with a small circle and optional label.
         """
         
         if parameters.frames.show_axes:
-            DrawFrame._drawAxes(image, frames_position, frames_position.opacity) #TODO: fix text opacity
+            DrawFrame._drawAxes(image, frames_position, frames_position.opacity, thickness) #TODO: fix text opacity
         if frames_position.name and parameters.frames.show_frame_names:
-            DrawFrame.drawText(image, frames_position.name, (frames_position.start[0] + 10, frames_position.start[1] + 10), opacity=frames_position.opacity)
+            DrawFrame.drawText(image, frames_position.name, (frames_position.start[0] + 10, frames_position.start[1] + 10), opacity=frames_position.opacity, thickness=thickness)
 
         if frames_position.start_connection and frames_position.end_connection:
-            DrawFrame.drawArrow(image, frames_position.start_connection, frames_position.end_connection, color=(150, 150, 150), opacity=frames_position.opacity)
+            DrawFrame.drawArrow(image, frames_position.start_connection, frames_position.end_connection, color=(150, 150, 150), opacity=frames_position.opacity, thickness=thickness)
 
     
     @staticmethod
@@ -114,6 +114,7 @@ class DrawFrame:
         """
         Draws a grid on the image with the specified spacing, color, and line thickness.
         """
+        
         height, width = image.shape[:2]
         center_x, center_y = int(width // 2), int(height // 2)
         
@@ -128,13 +129,13 @@ class DrawFrame:
             cv2.line(image, (0, y), (width, y), color, thickness)
             
     
-    def _drawAxes( image: np.ndarray, frame_position: FramesPosition, opacity:float) -> None:
+    def _drawAxes( image: np.ndarray, frame_position: FramesPosition, opacity:float, thickness : int) -> None:
         """
         Draw X and Y axes of a frame.
         """
 
-        DrawFrame.drawArrow(image, frame_position.start, frame_position.end_x, color=(0, 0, 255),opacity=opacity)
-        DrawFrame.drawArrow(image, frame_position.start, frame_position.end_y, color=(0, 255, 0),opacity=opacity)
+        DrawFrame.drawArrow(image, frame_position.start, frame_position.end_x, color=(0, 0, 255),opacity=opacity, thickness=thickness)
+        DrawFrame.drawArrow(image, frame_position.start, frame_position.end_y, color=(0, 255, 0),opacity=opacity, thickness=thickness)
     
     
     def drawArrow(image: np.ndarray, start: Tuple[int, int], end: Tuple[int, int], color: Tuple[int, int, int], thickness: int = 1, tip_length: float = 0.1, opacity: float = 1.0) -> None:

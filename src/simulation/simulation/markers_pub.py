@@ -25,7 +25,7 @@ class MarkersPublisher(Node):
         self.circleMarker = self._createCircleMarker()
         self.lineMarker = self._createLineMarker()  
 
-        timerPeriod = 1.0  
+        timerPeriod = 0.1  
         self.timer = self.create_timer(timerPeriod, self.publishMarkers)
         self.get_logger().info("MarkersPublisher initialized and running.")
     
@@ -176,18 +176,18 @@ class MarkersPublisher(Node):
 
     def publishMarkers(self):
         self.cubeMarker.header.stamp = self.get_clock().now().to_msg()
-        self.cubeMarker.pose.position.x = (self.cubeMarker.pose.position.x + 0.1 ) % 3
-        self.cubeMarker.pose.position.y = (self.cubeMarker.pose.position.y - 0.1 ) % 3
+        self.cubeMarker.pose.position.x = (self.cubeMarker.pose.position.x + 0.05 ) % 3
+        self.cubeMarker.pose.position.y = (self.cubeMarker.pose.position.y - 0.05 ) % 3
         self.publisherCube.publish(self.cubeMarker)
 
         self.sphereMarker.header.stamp = self.get_clock().now().to_msg()
-        self.sphereMarker.pose.position.x = (self.sphereMarker.pose.position.x + 0.1 ) % 3
-        self.sphereMarker.pose.position.y = (self.sphereMarker.pose.position.y + 0.1 ) % 3
+        self.sphereMarker.pose.position.x = (self.sphereMarker.pose.position.x + 0.05 ) % 3
+        self.sphereMarker.pose.position.y = (self.sphereMarker.pose.position.y + 0.05 ) % 3
         self.publisherSphere.publish(self.sphereMarker)
         
         self.cylinderMarker.header.stamp = self.get_clock().now().to_msg()
-        self.cylinderMarker.pose.position.x = (self.cylinderMarker.pose.position.x + 0.1 ) % 3
-        self.cylinderMarker.pose.position.y = (self.cylinderMarker.pose.position.y - 0.1 ) % 3
+        self.cylinderMarker.pose.position.x = (self.cylinderMarker.pose.position.x + 0.05 ) % 3
+        self.cylinderMarker.pose.position.y = (self.cylinderMarker.pose.position.y - 0.05 ) % 3
         self.publisherCylinder.publish(self.cylinderMarker)
         
 

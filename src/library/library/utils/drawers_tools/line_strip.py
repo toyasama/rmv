@@ -34,7 +34,7 @@ class LineStripDrawer:
             return  
 
         fx = camera_manager.fx
-        projected_thickness = int(marker.scale.x * fx / camera_manager.camera_distance)  
+        projected_thickness = min(1,int(marker.scale.x * fx / camera_manager.camera_distance))
 
         for i in range(len(projected_points) - 1):
             color = (marker.color.b * 255, marker.color.g * 255, marker.color.r * 255)

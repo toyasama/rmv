@@ -10,7 +10,7 @@ RMV:
         theta: 0
         x: 0
         y: 0
-        z: 2.5
+        z: 3
     draw_grid: true
     fps: 30
     grid_color:
@@ -22,7 +22,7 @@ RMV:
     grid_spacing: 0.1 # m
   
   frames:
-    main_frame: "base_link"
+    main_frame: "frame_1"
     sub_frames: []
     show_axes: true
     show_frame_names: true

@@ -3,13 +3,11 @@ from pathlib import Path
 from rclpy.node import Node
 from time import time
 from typing import List, Dict
+import threading
 
-from std_msgs.msg import ColorRGBA
-from library import (TransformDrawerInfo, TransformGraph, MarkerRmv, TFManager, MarkersHandler, TopicManager, TransformUtils)
+from library import (TransformDrawerInfo, TransformGraph, MarkerRmv, TFManager, MarkersHandler, TopicManager, TransformUtils, RmvParameters)
 from visualization.visualization import Visualization
-from library import RmvParameters, VisualizationParameters
-
-
+from visualization.app.rmv_app import RmvApp
 
 class RMVChoreNode(Node):
     def __init__(self):
@@ -47,13 +45,9 @@ class RMVChoreNode(Node):
         markers = self.markers_handler.markers
         markers = self.projectToMainFrame(markers, self.transform_graph.getTransformsFromMainFrame())
         self.visualization.visualize(markers)
-        # self.get_logger().info(f"Visualization update time: {time() - start_time:.3f}s")
-
         
-def main():
-    rclpy.init()
-    node = RMVChoreNode()
 
+def run_ros2_node(node: RMVChoreNode):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
@@ -62,6 +56,15 @@ def main():
         node.destroy_node()
         rclpy.shutdown()
 
+def main():
+    rclpy.init()
+    node = RMVChoreNode()
+    ros_thread = threading.Thread(target=run_ros2_node, daemon=True, args=(node,))
+    ros_thread.start()
+    try:
+        RmvApp(node.visualization, node.parameters).run()
+    except ...:
+        print("An error occurred.")
 
 if __name__ == "__main__":
     main()

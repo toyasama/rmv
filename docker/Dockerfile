@@ -1,6 +1,7 @@
 # Official ROS2 Humble Image with Desktop Support
 FROM osrf/ros:humble-desktop
 
+
 # Python dependencies
 RUN rm -rf /var/lib/apt/lists/* && apt-get update
 
@@ -22,12 +23,33 @@ RUN pip3 install --no-cache-dir \
     pylint \
     flask
 
+# Kivy installation
+
+ENV USE_SDL2=1
+ENV USE_GSTREAMER=1
+
+# Install Kivy, SDL2 and Gstreamer dependencies 
+RUN apt-get update -o Acquire::http::Pipeline-Depth=0 && apt-get install -y --no-install-recommends \
+    build-essential git python3-dev libmtdev-dev libgles2-mesa libsdl2-dev \
+    libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev ffmpeg \
+    libsm6 libxext6 libxrender1 libgstreamer1.0 gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa \
+    gstreamer1.0-pulseaudio xclip xsel && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Kivy library
+RUN python3 -m pip install --no-cache-dir --upgrade pip wheel Cython \
+    &&python3 -m pip install --no-cache-dir setuptools==58.2.0 wheel \
+    && python3 -m pip install --no-cache-dir docutils pygments kivy[base] kivy[pygame] kivy[angle_sdl2] \
+    && python3 -m pip install --no-cache-dir https://github.com/kivymd/KivyMD/archive/master.zip \
+    && python3 -m pip install --no-cache-dir gitpython 
+
 # Non-root user for development
 ARG USERNAME=devuser
 ARG USER_UID=1000
 ARG USER_GID=1000
 
-# Additional Python libraries for the project
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && apt-get update && apt-get install -y sudo \
@@ -36,6 +58,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 USER $USERNAME
 WORKDIR /home/$USERNAME
+RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' ~/.bashrc
 
 RUN echo 'HISTFILE=~/.bash_history' >> /home/devuser/.bashrc \
     && echo 'HISTSIZE=1000' >> /home/devuser/.bashrc \
