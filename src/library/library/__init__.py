@@ -1,5 +1,5 @@
 from library.markers_management.markers import MarkerRmv, MarkersHandler
-from library.parameters.params import RmvParameters, VisualizationParameters 
+from library.parameters.params import RmvParameters, VisualizationParameters, FramesParameters
 from library.tf_management.graph import  TransformGraph
 from library.tf_management.tf import TFManager
 from library.tf_management.transform_utils import TransformUtils
@@ -13,6 +13,7 @@ from library.utils.frame_position import FramesPosition
 __all__ = [
     "MarkerRmv",
     "RmvParameters",
+    "FramesParameters",
     "VisualizationParameters",
     "TransformGraph",
     "TFManager",

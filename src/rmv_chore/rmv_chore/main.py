@@ -62,7 +62,7 @@ def main():
     ros_thread = threading.Thread(target=run_ros2_node, daemon=True, args=(node,))
     ros_thread.start()
     try:
-        RmvApp(node.visualization, node.parameters).run()
+        RmvApp(node.visualization, node.parameters, node.transform_graph).run()
     except ...:
         print("An error occurred.")
 

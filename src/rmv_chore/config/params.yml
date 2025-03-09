@@ -1,4 +1,15 @@
 RMV:
+  frames:
+    axes_length: 0.1
+    main_frame: frame_1
+    show_axes: false
+    show_connections: true
+    show_frame_names: true
+    show_sub_frames: false
+    sub_frames:
+    - frame_2
+    - frame_5
+    - frame_3
   visualizations:
     background_color:
       b: 25
@@ -10,21 +21,13 @@ RMV:
         theta: 0
         x: 0
         y: 0
-        z: 3
+        z: 7.0
     draw_grid: true
     fps: 30
     grid_color:
-      b: 125
-      g: 125
-      r: 125
+      b: 255
+      g: 255
+      r: 255
+    grid_spacing: 1.0
     height: 500
     width: 800
-    grid_spacing: 0.1 # m
-  
-  frames:
-    main_frame: "frame_1"
-    sub_frames: []
-    show_axes: true
-    show_frame_names: true
-    show_connections: true
-    axes_length: 0.1 # m

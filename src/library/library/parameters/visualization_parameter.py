@@ -15,6 +15,22 @@ class VisualizationParameters:
     )
     _grid_spacing: float = field(default=1, init=False)
     
+    def __dict__(self) -> Dict[str, Any]:
+        return {"visualizations":{
+            
+            'width': self._width,
+            'height': self._height,
+            'fps': self._fps,
+            'draw_grid': self._draw_grid,
+            'background_color': self._background_color,
+            'grid_color': self._grid_color,
+            'camera': self._camera,
+            'grid_spacing': self._grid_spacing
+        }}
+        
+    def toDict(self) -> Dict[str, Any]:
+        return self.__dict__()
+    
     def __post_init__(self):
         self._locks = {
             'width': RLock(),
@@ -209,4 +225,5 @@ class VisualizationParameters:
             self._grid_spacing = spacing
     
     def toggleDrawGrid(self):
-        self._draw_grid = not self._draw_grid
+        with self._locks['draw_grid']:
+            self._draw_grid = not self._draw_grid

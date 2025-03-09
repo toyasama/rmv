@@ -74,8 +74,11 @@ class Visualization(CameraManager):
         tf_drawer_info: List[TransformDrawerInfo] = self.transform_graph.getTransformsFromMainFrame()
 
         for frame in tf_drawer_info:
-            if frame.transform_name in self.rmv_params.frames.sub_frames: 
+            if self.rmv_params.frames.show_sub_frames:
                 with self.image_lock:  
+                    DrawFrame.projectAndDrawFrame(self,self._image, frame, self.rmv_params, axes_thickness)
+            elif frame.transform_name in self.rmv_params.frames.sub_frames: 
+                with self.image_lock:
                     DrawFrame.projectAndDrawFrame(self,self._image, frame, self.rmv_params, axes_thickness)
         with self.image_lock:
             DrawMarkers.drawMarkers(self._image, markers, self)

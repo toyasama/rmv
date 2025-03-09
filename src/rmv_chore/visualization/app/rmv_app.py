@@ -2,6 +2,10 @@ from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.graphics import Color, Rectangle
+from kivy.metrics import dp
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from pathlib import Path
@@ -10,7 +14,7 @@ import numpy as np
 import cv2
 
 from visualization.visualization import Visualization
-from library import RmvParameters
+from library import (RmvParameters, FramesParameters, TransformGraph)
 from kivy.core.window import Window
 from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty
 
@@ -24,18 +28,194 @@ if not kv_path.exists():
 
 Builder.load_file(str(kv_path))
 
+class CustomInput(TextInput):
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.multiline = False
+        self.halign = 'center'
+        self.valign = 'center'
+
+class ParameterToggle(BoxLayout):
+    """
+    Widget réutilisable pour un paramètre avec un label et une checkbox.
+    """
+    label_text = StringProperty("")
+    init_state = BooleanProperty(False)
+    disabled_state = BooleanProperty(False)
+    toggle_func = ObjectProperty(None)
+    height = NumericProperty(0.1)  
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def on_toggle(self, instance, value):
+        if self.toggle_func:
+            self.toggle_func()
+            
+    def set_disabled(self, state):
+        self.disabled_state = state
+        self.ids.toggle_checkbox.disabled = state
+        
+
+class SubFramesList(BoxLayout):
+    def __init__(self,  **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'vertical'
+        self.size_hint_y = None
+        self.frames_params:FramesParameters = App.get_running_app().rmv_params.frames
+        self.sub_frames_list = App.get_running_app().transform_graph.sub_frames
+        widget_number =  len(self.sub_frames_list) + 1
+        widget_height = self.height / widget_number
+        self.height = widget_number * widget_height 
+        self.param_toggles = [] 
+
+        self.addAllParams(widget_height)
+        self.addSubFrame(widget_height)
+
+    def addAllParams(self, widget_height):
+        self.show_all_frames_widget = ParameterToggle(label_text="Show all", height=widget_height)
+        self.show_all_frames_widget.init_state = self.frames_params.show_sub_frames
+        self.show_all_frames_widget.toggle_func = self.toggle_all_params 
+        self.add_widget(self.show_all_frames_widget)
+
+    def addSubFrame(self, widget_height):
+        
+        for sub_frame in self.sub_frames_list:
+            param_toggle = ParameterToggle(label_text=sub_frame, height=widget_height)
+            param_toggle.ids.toggle_checkbox.bind(active=lambda instance, value, sub_frame=sub_frame: self.updateSubFrameList(sub_frame, value))
+            param_toggle.ids.toggle_checkbox.active = sub_frame in self.frames_params.sub_frames
+            self.param_toggles.append(param_toggle)
+            self.add_widget(param_toggle)
+        self.__updateDisableState()
+        
+    def updateSubFrameList(self,sub_frame_name, value):
+        print(f"update sub frame list {sub_frame_name}")
+        if value:
+            self.frames_params.addSubFrame(sub_frame_name)
+        else:
+            self.frames_params.removeSubFrame(sub_frame_name)
+        
+
+    def toggle_all_params(self):
+        """Active ou désactive tous les sous-paramètres en fonction de 'Show all'."""
+        self.frames_params.toggleSubFrames()
+        self.__updateDisableState()
+            
+    def __updateDisableState(self):
+        state = self.show_all_frames_widget.ids.toggle_checkbox.active
+        for param_toggle in self.param_toggles:
+            param_toggle.set_disabled(state)  
+
+
+class SubFramesParameter(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.is_extended = False
+        self.sub_frames_list_widget = None
+        self.initial_height = self.height
+        self.updating_size = False  
+
+    def on_size(self, instance, value):
+        """Adapte immédiatement la taille du widget pour réduire le lag visuel."""
+        if self.updating_size:
+            return 
+
+        print(f"on size triggered: width {value[0]}, height {value[1]} (current height: {self.height})")
+
+        self.recalculate_height()
+
+    def recalculate_height(self):
+        """Met à jour la hauteur de manière optimisée."""
+        if self.sub_frames_list_widget:
+            new_height = (len(self.sub_frames_list_widget.sub_frames_list) + 1) * self.initial_height
+            updated_height = self.initial_height + new_height
+
+            if abs(self.height - updated_height) > 1: 
+                print(f"Updating height from {self.height} to {updated_height}")
+
+                self.updating_size = True
+                self.height = updated_height
+                Clock.unschedule(self.reset_updating_flag)  # Make sure to reset the flag only once and delete the previous scheduled reset
+                Clock.schedule_once(self.reset_updating_flag, -1)  
+
+    def reset_updating_flag(self, dt):
+        self.updating_size = False
+        
+    def _toggleSubFrames(self):
+        frames :FramesParameters= App.get_running_app().rmv_params.frames
+        frames.toggleSubFrames()
+
+    def toggleExtension(self):
+        if not self.is_extended:
+            self.extendWidget()
+        else:
+            self.collapseWidget()
+        self.is_extended = not self.is_extended
+
+    def extendWidget(self):
+        self.sub_frames_list = App.get_running_app().transform_graph.sub_frames
+        if not self.sub_frames_list_widget and len(self.sub_frames_list) > 0: 
+            self.sub_frames_list_widget = SubFramesList( height=(len(self.sub_frames_list)+1)*self.height)
+            self.add_widget(self.sub_frames_list_widget)
+            self.height += self.sub_frames_list_widget.height
+
+    def collapseWidget(self):
+        if self.sub_frames_list_widget: 
+            self.remove_widget(self.sub_frames_list_widget)
+            self.height = self.initial_height
+            self.sub_frames_list_widget = None  
+
+
+class CustomLabel(Label):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.color = [0, 0, 0, 1]
+        self.valign = 'center'
+        self.halign = 'left'
+        self.markup = True
+        self.text_size = (self.width, self.height)  
+        self.bind(size=self.update_text_size) 
+        Window.bind(on_resize=self.update_text_size)
+
+    def update_text_size(self, *args):
+        self.text_size = (self.width, self.height)  
+        self.texture_update()  
+        
 class ParameterInput(BoxLayout ):
     label_text = StringProperty("")
     hint_text = StringProperty("")
     input_text = StringProperty("")
     input_clbk = ObjectProperty(None)
+    filter_clbk = ObjectProperty(None)
     
     def callback(self, value):
         if self.input_clbk:
             self.input_clbk(value)
 
-class ColorInput(TextInput):
+class MultipleParameterInput(BoxLayout ):
+    label_text = StringProperty("")
+    hint_text = StringProperty("")
+    input_text = StringProperty("")
+    input_clbk = ObjectProperty(None)
+    filter_clbk = ObjectProperty(None)
+    
+    def callback(self, value):
+        if self.input_clbk:
+            self.input_clbk(value)
+            
+class ColorInput(CustomInput):
     last_valid_input = StringProperty('')
+    
+    def input_filter(self, text:str, from_undo=False):
+        if not text.isdigit():
+            return ''  
+        
+        new_text :str = self.text + text
+        if new_text.isdigit() and 0 <= int(new_text) <= 255:
+            return text  
+        else:
+            return ''
     
     def insert_text(self, substring, from_undo=False):
         new_text = self.text + substring
@@ -105,22 +285,7 @@ class ColorParameter(BoxLayout):
         if self.color_change_clbk:
             self.color_change_clbk(b=value)
 
-class ParameterToggle(BoxLayout):
-    """
-    Widget réutilisable pour un paramètre avec un label et une checkbox.
-    """
-    label_text = StringProperty("")
-    init_state = BooleanProperty(False)
-    toggle_func = ObjectProperty(None)
-    height = NumericProperty(0.1)  
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def on_toggle(self, instance, value):
-        if self.toggle_func:
-            self.toggle_func()
-            
 class MainFrameParameter(BoxLayout):
     height = NumericProperty(0.1)
     main_frame_name = StringProperty()
@@ -163,10 +328,11 @@ class Rmv(BoxLayout):
         self.ids.video_feed.texture = texture
 
 class RmvApp(App):
-    def __init__(self, visualization: Visualization, rmv_params: RmvParameters, **kwargs):
+    def __init__(self, visualization: Visualization, rmv_params: RmvParameters,transform_graph:TransformGraph, **kwargs):
         super().__init__(**kwargs)
         self.visualization = visualization
         self.rmv_params = rmv_params
+        self.transform_graph = transform_graph
         self.rmv_ui = None  
 
     def build(self):

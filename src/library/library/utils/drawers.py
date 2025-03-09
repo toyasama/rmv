@@ -54,9 +54,13 @@ class DrawFrame:
         proj_x_end = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos_x_end))
         proj_y_end = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos_y_end))
         proj = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos))
-        show_one_end = transform_info.transform_name in parameters.frames.sub_frames or transform_info.transform_name in parameters.frames.main_frame
-        show_other_end = transform_info.parent in parameters.frames.sub_frames or transform_info.parent in parameters.frames.main_frame
-            
+        if not parameters.frames.show_sub_frames:
+            show_one_end = transform_info.transform_name in parameters.frames.sub_frames or transform_info.transform_name in parameters.frames.main_frame
+            show_other_end = transform_info.parent in parameters.frames.sub_frames or transform_info.parent in parameters.frames.main_frame
+        else:
+            show_one_end = True
+            show_other_end = True
+        
         if parameters.frames.show_connections and show_one_end and show_other_end:
             start_connection =np.array([transform_info.start_connection.translation.x, transform_info.start_connection.translation.y, transform_info.start_connection.translation.z])
             end_connection =np.array([transform_info.end_connection.translation.x, transform_info.end_connection.translation.y, transform_info.end_connection.translation.z])

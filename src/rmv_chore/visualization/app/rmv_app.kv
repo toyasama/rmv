@@ -1,13 +1,7 @@
 #:kivy 1.0.9
-<ColorInput>:
-    multiline: False
+<CustomInput>:
 
-<CustomLabel@Label>:
-    color: [0, 0, 0, 1]
-    text_size: self.size
-    valign: 'center'
-    halign: 'left'
-    markup: True
+<CustomLabel>:
 
 <ImageSizeParameter>:
     orientation: 'horizontal'
@@ -16,26 +10,26 @@
 
     CustomLabel:
         text: root.label_text
+        size_hint_x: 0.4
 
     AnchorLayout:
         anchor_x: 'center'
         anchor_y: 'center'
-        size_hint_x: 0.5
         
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: 0.5
-            TextInput:
+            CustomInput:
                 hint_text: "width"
                 text: root.im_width
-                multiline: False
                 on_text_validate: root._widthClbk(self.text)
-            TextInput:
+                size_hint_y: 0.5
+            CustomInput:
                 hint_text: "height"
                 text: root.im_height
-                multiline: False
                 on_text_validate: root._heightClbk(self.text)
-                
+                size_hint_y: 0.5
+
 <ColorParameter>:
     orientation: 'horizontal'
     size_hint_y: None
@@ -43,11 +37,11 @@
 
     CustomLabel:
         text: root.label_text
+        size_hint_x: 0.4
 
     AnchorLayout:
         anchor_x: 'center'
         anchor_y: 'center'
-        size_hint_x: 0.5
         
         BoxLayout:
             orientation: 'horizontal'
@@ -56,14 +50,17 @@
                 hint_text: "r"
                 text: root.r_color
                 on_text_validate: root._rColorClbk(self.text)
+                size_hint_y:0.5
             ColorInput:
                 hint_text: "g"
                 text: root.g_color
                 on_text_validate: root._gColorClbk(self.text)
+                size_hint_y:0.5
             ColorInput:
                 hint_text: "b"
                 text: root.b_color
                 on_text_validate: root._bColorClbk(self.text)
+                size_hint_y:0.5
 
 <ParameterToggle>:
     orientation: 'horizontal'
@@ -71,11 +68,13 @@
     height: root.height 
 
     CustomLabel:
+        id: toggle_label
         text: root.label_text
-        size_hint_x: 0.8
+        size_hint_x: 0.7
+        color: [0,0,0,1] if not root.disabled_state else [0.6,0.6,0.6,1]
 
     CheckBox:
-        size_hint_x: 0.2
+        id: toggle_checkbox
         active: root.init_state 
         on_active: root.on_toggle(*args)
 
@@ -86,33 +85,57 @@
 
     CustomLabel:
         text: root.label_text
+        size_hint_x: 0.5
+
     AnchorLayout:
         anchor_x: 'center'
         anchor_y: 'center'
-        TextInput:
+        CustomInput:
             hint_text: root.hint_text
             text: root.input_text
-            multiline: False
-            size_hint_y: 0.5
+            size_hint_y: 0.3
             on_text_validate: root.callback(self.text)
+            input_filter:root.filter_clbk
+
+<MultipleParameterInput>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: root.height
+
+    Label:
+        text: root.label_text
+        size_hint_x: 0.5
+        halign: 'center'
+        valign: 'center'
+        font_size: min(self.height * 0.5, self.width * 0.5)
+        color: [0, 0, 0, 1]
+        text_size: self.size
+
+    AnchorLayout:
+        anchor_x: 'center'
+        anchor_y: 'center'
+        CustomInput:
+            hint_text: root.hint_text
+            text: root.input_text
+            size_hint_y: 0.3
+            on_text_validate: root.callback(self.text)
+            input_filter:root.filter_clbk
 
 <MainFrameParameter>:
     size_hint_y: None
     height: root.height
 
     CustomLabel:
-        text: root.main_frame_name
-        size_hint_x: 0.3
+        text: "Main frame"
+        size_hint_x: 0.5
     AnchorLayout:
         anchor_x: 'center'
         anchor_y: 'center'
-        TextInput:
+        CustomInput:
             hint_text: "Enter frame name"
             text: root.main_frame_name
-            multiline: False
-            size_hint_y: 0.5
+            size_hint: 0.8, 0.3
             on_text_validate: root.callback(self.text)
-
 <GroupParameter@Label>:
     canvas.before:
         Color:
@@ -125,136 +148,170 @@
     size_hint_y: None
     height: root.height 
 
-<ControlPanel>:
-    orientation: 'vertical'
-    
+
+<SubFramesParameter>:
+    size_hint_y: None
+    orientation: "vertical"
     canvas.before:
         Color:
-            rgba: [0,0,0, 1]  
-        Rectangle:
-            size: [5, self.height]  
-            pos: [self.right - 2, self.y]  
-    canvas.before:
-        Color:
-            rgba: [0, 0.5, 0.5, 1 ] 
+            rgba: [0.5, 0.5, 0.5, 1]
         Rectangle:
             size: self.size
             pos: self.pos
+    BoxLayout:
+        orientation: "horizontal"
+        CustomLabel:
+            text: "Sub frames"
+        Button:
+            text: "^" 
+            size_hint_x: 0.2
+            on_press: root.toggleExtension()
 
-    ScrollView:
-        do_scroll_x: False 
-        do_scroll_y: True
 
-        BoxLayout:
-            orientation: 'vertical'
-            size_hint_y: None
-            height: self.minimum_height 
+<ControlPanel>:
+    orientation: 'vertical'
+    
+    BoxLayout:
+        orientation: "vertical"
+        Button:
+            text: "Save"
+            color: [0, 0, 0, 1]
+            background_color: [0.8, 0.8, 0.8, 1]
+            size_hint_y: 0.05
+            on_press: app.rmv_params.save()
+            background_normal: ''
+            border: [0, 0, 0, 0]
 
-            GridLayout:
-                cols: 1
+        ScrollView:
+            do_scroll_x: False 
+            do_scroll_y: True
+
+            canvas.before:
+                Color:
+                    rgba: [0,0,0, 1]  
+                Rectangle:
+                    size: [5, self.height]  
+                    pos: [self.right - 2, self.y]  
+            canvas.before:
+                Color:
+                    rgba: [0, 0.5, 0.5, 1 ] 
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+            BoxLayout:
+                orientation: 'vertical'
                 size_hint_y: None
-                height: self.minimum_height  
-                minimum_height: sum(child.height for child in self.children)  
+                height: self.minimum_height 
 
-                ImageSizeParameter:
-                    label_text: "Image size"
-                    im_width: str(app.rmv_params.visualization.width)
-                    im_height: str(app.rmv_params.visualization.height)
-                    resolution_change_clbk: app.rmv_params.visualization.setResolution
-                    height: root.height / 10
-                    
-                ColorParameter:
-                    label_text: "background color"
-                    r_color: str(app.rmv_params.visualization.background_color['r'])
-                    g_color: str(app.rmv_params.visualization.background_color['g'])
-                    b_color: str(app.rmv_params.visualization.background_color['b'])
-                    color_change_clbk: app.rmv_params.visualization.updateBackgroundColor
-                    height: root.height / 10
-
-                GroupParameter:
-                    text: "Grid"
-                    height: root.height / 20
-
-                ParameterToggle:
-                    label_text: "Draw grid"
-                    init_state: app.rmv_params.visualization.draw_grid
-                    toggle_func: app.rmv_params.visualization.toggleDrawGrid
-                    height: root.height / 10
-
-                ParameterInput:
-                    label_text: "Grid Spacing"
-                    hint_text: "0.1"
-                    input_text: str(app.rmv_params.visualization.grid_spacing)
-                    callback: app.rmv_params.visualization.updateGridSpacing
-
-                ColorParameter:
-                    label_text: "grid color"
-                    r_color: str(app.rmv_params.visualization.grid_color['r'])
-                    g_color: str(app.rmv_params.visualization.grid_color['g'])
-                    b_color: str(app.rmv_params.visualization.grid_color['b'])
-                    color_change_clbk: app.rmv_params.visualization.updateGridColor
-
-                GroupParameter:
-                    text: "Frames"
-                    height: root.height / 20
-
-                MainFrameParameter:
-                    main_frame_name: app.rmv_params.frames.main_frame
-                    height: root.height / 10
-                    
-                
-                ParameterToggle:
-                    label_text: "Show axes"
-                    init_state: app.rmv_params.frames.show_axes
-                    toggle_func: app.rmv_params.frames.toggleAxes
-                    height: root.height / 10
-
-                ParameterToggle:
-                    label_text: "Show connections"
-                    init_state: app.rmv_params.frames.show_connections
-                    toggle_func: app.rmv_params.frames.toggleConnections
-                    height: root.height / 10
-
-                ParameterToggle:
-                    label_text: "Show names"
-                    init_state: app.rmv_params.frames.show_frame_names
-                    toggle_func: app.rmv_params.frames.toggleFrameNames
-                    height: root.height / 10
-
-                GroupParameter:
-                    text: "Camera"
-                    height: root.height / 20
-                BoxLayout:
+                GridLayout:
+                    cols: 1
                     size_hint_y: None
-                    height: root.height / 10
-                    spacing: 0.01 * self.width
-                    ParameterInput:
-                        label_text: "X"
-                        hint_text: "0"
-                        input_text: str(app.rmv_params.visualization.camera_position[0])
-                        input_clbk: app.rmv_params.visualization.updateCameraPositionX
+                    height: self.minimum_height  
+                    minimum_height: sum(child.height for child in self.children)  
+
+                    ImageSizeParameter:
+                        label_text: "Image size"
+                        im_width: str(app.rmv_params.visualization.width)
+                        im_height: str(app.rmv_params.visualization.height)
+                        resolution_change_clbk: app.rmv_params.visualization.setResolution
+                        height: root.height / 10
+                        
+                    ColorParameter:
+                        label_text: "background color"
+                        r_color: str(app.rmv_params.visualization.background_color['r'])
+                        g_color: str(app.rmv_params.visualization.background_color['g'])
+                        b_color: str(app.rmv_params.visualization.background_color['b'])
+                        color_change_clbk: app.rmv_params.visualization.updateBackgroundColor
+                        height: root.height / 10
+
+                    GroupParameter:
+                        text: "Grid"
+                        height: root.height / 20
+
+                    ParameterToggle:
+                        label_text: "Draw grid"
+                        init_state: app.rmv_params.visualization.draw_grid
+                        toggle_func: app.rmv_params.visualization.toggleDrawGrid
+                        height: root.height / 10
 
                     ParameterInput:
-                        label_text: "Y"
-                        hint_text: "0"
-                        input_text: str(app.rmv_params.visualization.camera_position[1])
-                        input_clbk: app.rmv_params.visualization.updateCameraPositionY
+                        label_text: "Grid Spacing"
+                        hint_text: "0.1"
+                        input_text: str(app.rmv_params.visualization.grid_spacing)
+                        callback: app.rmv_params.visualization.updateGridSpacing
+                        height: root.height / 10
 
+                    ColorParameter:
+                        label_text: "grid color"
+                        r_color: str(app.rmv_params.visualization.grid_color['r'])
+                        g_color: str(app.rmv_params.visualization.grid_color['g'])
+                        b_color: str(app.rmv_params.visualization.grid_color['b'])
+                        color_change_clbk: app.rmv_params.visualization.updateGridColor
+
+                    GroupParameter:
+                        text: "Frames"
+                        height: root.height / 20
+
+                    MainFrameParameter:
+                        main_frame_name: app.rmv_params.frames.main_frame
+                        height: root.height / 10
+                        
+                    SubFramesParameter:
+                        height: root.height / 10
+                        
+                    ParameterToggle:
+                        label_text: "Show axes"
+                        init_state: app.rmv_params.frames.show_axes
+                        toggle_func: app.rmv_params.frames.toggleAxes
+                        height: root.height / 10
+
+                    ParameterToggle:
+                        label_text: "Show connections"
+                        init_state: app.rmv_params.frames.show_connections
+                        toggle_func: app.rmv_params.frames.toggleConnections
+                        height: root.height / 10
+
+                    ParameterToggle:
+                        label_text: "Show names"
+                        init_state: app.rmv_params.frames.show_frame_names
+                        toggle_func: app.rmv_params.frames.toggleFrameNames
+                        height: root.height / 10
+
+                    GroupParameter:
+                        text: "Camera"
+                        height: root.height / 20
+                    BoxLayout:
+                        size_hint_y: None
+                        height: root.height / 10
+                        spacing: 0.01 * self.width
+                        MultipleParameterInput:
+                            label_text: "X"
+                            hint_text: "0"
+                            input_text: str(app.rmv_params.visualization.camera_position[0])
+                            input_clbk: app.rmv_params.visualization.updateCameraPositionX
+
+                        MultipleParameterInput:
+                            label_text: "Y"
+                            hint_text: "0"
+                            input_text: str(app.rmv_params.visualization.camera_position[1])
+                            input_clbk: app.rmv_params.visualization.updateCameraPositionY
+
+                        MultipleParameterInput:
+                            label_text: "Z"
+                            hint_text: "0"
+                            input_text: str(app.rmv_params.visualization.camera_position[2])
+                            input_clbk: app.rmv_params.visualization.updateCameraPositionZ
                     ParameterInput:
-                        label_text: "Z"
+                        label_text: "Rotation"
                         hint_text: "0"
-                        input_text: str(app.rmv_params.visualization.camera_position[2])
-                        input_clbk: app.rmv_params.visualization.updateCameraPositionZ
-                ParameterInput:
-                    label_text: "Rotation"
-                    hint_text: "0"
-                    input_text: str(app.rmv_params.visualization.camera_position[3])
-                    callback: app.rmv_params.visualization.updateCameraPositionTheta
-                ParameterInput:
-                    label_text: "Field of view"
-                    hint_text: "60"
-                    input_text: str(app.rmv_params.visualization.fov)
-                    callback: app.rmv_params.visualization.updateCameraFOV
+                        input_text: str(app.rmv_params.visualization.camera_position[3])
+                        callback: app.rmv_params.visualization.updateCameraPositionTheta
+                    ParameterInput:
+                        label_text: "Field of view"
+                        hint_text: "60"
+                        input_text: str(app.rmv_params.visualization.fov)
+                        callback: app.rmv_params.visualization.updateCameraFOV
 <Rmv>:
     BoxLayout:
         canvas.before:

@@ -54,6 +54,8 @@ class TransformGraph(BaseGraph):
     
     def __init__(self,  rmv_params: RmvParameters):
         super().__init__(rmv_params)
+        self.__sub_frames = []
+        self.__sub_frames_lock = RLock()
     
     """Graph that manages frame transforms."""
     def addTransform(self, transform_stamped: TransformStamped, static: bool = False):
@@ -135,6 +137,14 @@ class TransformGraph(BaseGraph):
         """Retrieve all frames in the graph."""
         with self._graph_lock:
             return list(self._graph.nodes)
+    @property
+    def sub_frames(self) -> List[str]:
+        """Retrieve all sub frames in the graph."""
+        with self._graph_lock:
+            frames = list(self._graph.nodes)
+            if self._main_frame in frames:
+                frames.remove(self._main_frame)
+            return frames
     
     @property
     def main_frame(self):

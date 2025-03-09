@@ -78,6 +78,10 @@ class RmvParameters:
             self.visualization.fps = data['fps']
         if 'grid_spacing' in data:
             self.visualization.grid_spacing = data['grid_spacing']
+        if 'draw_grid' in data:
+            self.visualization.draw_grid = data['draw_grid']
+        if 'grid_color' in data:
+            self.visualization.updateGridColor(**data['grid_color'])
         if 'background_color' in data:
             self.visualization.updateBackgroundColor(**data['background_color'])
         if 'camera' in data and 'position' in data['camera']:
@@ -125,6 +129,14 @@ class RmvParameters:
         """Save the updated data to the YAML file."""
         try:
             with open(self.__path, 'w', encoding='utf-8') as file:
-                yaml.dump(self.data, file, default_flow_style=False, allow_unicode=True)
+                data = self.frames.toDict() 
+                data.update(self.visualization.toDict())
+                yaml.dump({'RMV': data}, file, default_flow_style=False, allow_unicode=True)
         except Exception as e:
             print(f"Error writing to the file: {e}")
+            return 
+        print("Data saved successfully.")
+            
+    def save(self):
+        """Save the current data to the YAML file."""
+        self._saveYaml()
