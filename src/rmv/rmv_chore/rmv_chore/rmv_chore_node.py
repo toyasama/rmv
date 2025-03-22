@@ -1,6 +1,6 @@
 from pathlib import Path 
 from rclpy.node import Node
-from library import (TransformDrawerInfo, TransformGraph, MarkerRmv, TFManager, MarkersHandler, TopicManager, TransformUtils, RmvParameters)
+from rmv_library import (TransformDrawerInfo, TransformGraph, MarkerRmv, TFManager, MarkersHandler, TopicManager, TransformUtils, RmvParameters)
 from visualization.visualization import Visualization
 from time import time
 from typing import List, Dict

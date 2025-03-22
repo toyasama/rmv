@@ -1,13 +1,12 @@
 #!/bin/bash
 
 DIRECTORIES=(
-    "rmv_chore/rmv_chore/"
-    "rmv_chore/visualization/"
-    "library/markers_management/"
-    "library/parameters/"
-    "library/tf_management/"
-    "library/topic_management/"
-    "library/utils/"
+    "rmv_chore/"
+    "rmv_library/markers_management/"
+    "rmv_library/parameters/"
+    "rmv_library/tf_management/"
+    "rmv_library/topic_management/"
+    "rmv_library/utils/"
 )
 
 pyreverse -o puml  --filter-mode ALL --colorized --no-standalone "${DIRECTORIES[@]}"

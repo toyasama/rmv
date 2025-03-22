@@ -1,7 +1,7 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty
 from kivy.app import App
-from library import ( FramesParameters)
+from rmv_library import ( FramesParameters)
 from kivy.clock import Clock
 
 from .custom import CustomInput

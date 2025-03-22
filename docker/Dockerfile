@@ -14,15 +14,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip3 install git+https://github.com/DLu/tf_transformations.git
 
-RUN pip3 install --no-cache-dir \
-    numpy \
-    matplotlib \
-    pyyaml \
-    opencv-python-headless \
-    transforms3d \
-    networkx==2.5 \
-    pylint \
-    flask
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Kivy installation
 ENV USE_SDL2=1
@@ -78,4 +70,3 @@ RUN chmod +x /entrypoint.sh
 
 USER $USERNAME
 ENTRYPOINT ["/entrypoint.sh"]
-    

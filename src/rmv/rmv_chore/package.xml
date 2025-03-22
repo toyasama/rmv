@@ -7,7 +7,7 @@
   <maintainer email="emerytognama@gmail.com">devuser</maintainer>
   <license>TODO: License declaration</license>
 
-  <depend>library</depend>
+  <depend>rmv_library</depend>
   <depend>image_transport</depend>
   
   <test_depend>ament_copyright</test_depend>

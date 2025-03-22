@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'library'
+package_name = 'rmv_library'
 
 setup(
     name=package_name,
