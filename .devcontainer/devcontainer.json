@@ -1,0 +1,46 @@
+{
+    "name": "RMV Chore",
+    "build": {
+        "dockerfile": "../docker/Dockerfile",
+        "context": "..",
+        "options": [
+            "--tag=rmv_chore:latest"
+        ]
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "editor.formatOnSave": true
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-vscode.cpptools",
+                "ms-azuretools.vscode-docker",
+                "mhutchie.git-graph",
+                "jebbs.plantuml",
+                "mebrahtom.plantumlpreviewer"
+            ]
+        }
+    },
+    "postCreateCommand": "colcon build --symlink && . install/setup.bash",
+    "remoteUser": "devuser",
+    "workspaceFolder": "/home/devuser/workspace",
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/home/devuser/workspace,type=bind,consistency=cached",
+        "source=${localEnv:HOME}/.ssh,target=/home/devuser/.ssh,type=bind"
+    ],
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "HOST_USER": "${localEnv:USER}",
+        "HOST_WS_MOUNT": "${localWorkspaceFolder}",
+        "WORKSPACE_PATH": "/home/devuser/workspace"
+    },
+    "runArgs": [
+        "-v",
+        "/tmp/.X11-unix:/tmp/.X11-unix",
+        "--name=rmv_chore_dev_container",
+        "--network=host",
+        "--privileged"
+    ]
+}

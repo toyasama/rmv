@@ -1,0 +1,14 @@
+argparse
+flask
+networkx
+setuptools
+numpy
+kivy
+matplotlib 
+pyyaml 
+opencv-python 
+transforms3d 
+networkx
+pylint 
+
+

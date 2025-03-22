@@ -1,0 +1,52 @@
+@startuml packages
+set namespaceSeparator none
+package "src.library.library.parameters.frame_parameter" as src.library.library.parameters.frame_parameter #77AADD {
+}
+package "src.library.library.parameters.params" as src.library.library.parameters.params #77AADD {
+}
+package "src.library.library.parameters.visualization_parameter" as src.library.library.parameters.visualization_parameter #77AADD {
+}
+package "src.library.library.tf_management.graph" as src.library.library.tf_management.graph #77AADD {
+}
+package "src.library.library.tf_management.transform_rmv" as src.library.library.tf_management.transform_rmv #77AADD {
+}
+package "src.library.library.tf_management.transform_utils" as src.library.library.tf_management.transform_utils #77AADD {
+}
+package "src.library.library.topic_management.subscription_manager" as src.library.library.topic_management.subscription_manager #77AADD {
+}
+package "src.library.library.topic_management.topic_manager" as src.library.library.topic_management.topic_manager #77AADD {
+}
+package "src.library.library.utils.camera" as src.library.library.utils.camera #77AADD {
+}
+package "src.library.library.utils.drawers" as src.library.library.utils.drawers #77AADD {
+}
+package "src.library.library.utils.drawers_tools" as src.library.library.utils.drawers_tools #77AADD {
+}
+package "src.library.library.utils.drawers_tools.arrow" as src.library.library.utils.drawers_tools.arrow #77AADD {
+}
+package "src.library.library.utils.drawers_tools.cube" as src.library.library.utils.drawers_tools.cube #77AADD {
+}
+package "src.library.library.utils.drawers_tools.cylinder" as src.library.library.utils.drawers_tools.cylinder #77AADD {
+}
+package "src.library.library.utils.drawers_tools.grid" as src.library.library.utils.drawers_tools.grid #77AADD {
+}
+package "src.library.library.utils.drawers_tools.line_strip" as src.library.library.utils.drawers_tools.line_strip #77AADD {
+}
+package "src.library.library.utils.drawers_tools.sphere" as src.library.library.utils.drawers_tools.sphere #77AADD {
+}
+package "src.library.library.utils.frame_position" as src.library.library.utils.frame_position #77AADD {
+}
+src.library.library.parameters.params --> src.library.library.parameters.frame_parameter
+src.library.library.parameters.params --> src.library.library.parameters.visualization_parameter
+src.library.library.tf_management.graph --> src.library.library.tf_management.transform_rmv
+src.library.library.tf_management.graph --> src.library.library.tf_management.transform_utils
+src.library.library.topic_management.topic_manager --> src.library.library.topic_management.subscription_manager
+src.library.library.utils.drawers --> src.library.library.utils.camera
+src.library.library.utils.drawers --> src.library.library.utils.frame_position
+src.library.library.utils.drawers_tools --> src.library.library.utils.drawers_tools.arrow
+src.library.library.utils.drawers_tools --> src.library.library.utils.drawers_tools.cube
+src.library.library.utils.drawers_tools --> src.library.library.utils.drawers_tools.cylinder
+src.library.library.utils.drawers_tools --> src.library.library.utils.drawers_tools.grid
+src.library.library.utils.drawers_tools --> src.library.library.utils.drawers_tools.line_strip
+src.library.library.utils.drawers_tools --> src.library.library.utils.drawers_tools.sphere
+@enduml

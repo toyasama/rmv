@@ -1,0 +1,193 @@
+@startuml classes
+set namespaceSeparator none
+class "CameraManager" as visualization.visualization.CameraManager #EE8866 {
+  K : ndarray
+  camera_distance : float
+  fov
+  fx
+  params : str
+  __init__(params: 'VisualizationParams')
+  computeExtrinsicMatrix(center: np.ndarray)
+  computeIntrinsicMatrix()
+  metersToPixels(distance_m)
+  projectToImage(point_camera: np.ndarray)
+  worldToCamera(point: np.ndarray, T_camera_world)
+}
+class "FrameRMV" as tf_management.graph.FrameRMV #BBCC33 {
+  end_connection : Transform
+  name : str
+  opacity : float
+  start_connection : Transform
+  transform : Transform
+  valid : bool
+  __init__()
+  fill(frame: str, transform: Transform, start_connection: Transform, end_connection: Transform, opacity: float, valid: bool)
+}
+class "Graph" as tf_management.graph.Graph #BBCC33 {
+  _graph : DiGraph
+  _lock : _Lock
+  _running : bool
+  __init__()
+  _removeExpiredEdges()
+  addEdgeFromTransformStamped(transformStamped: TransformStamped, static: bool, expiration: float)
+  calculateAllTransformsFrom(main_frame: str) -> List[FrameRMV]
+  getAllFrames() -> List[str]
+  getTransform(parent: str, child: str) -> Optional[Transform]
+  run()
+  stop()
+}
+class "MarkersManager" as markers_management.markers_manager.MarkersManager #77AADD {
+  __lock_markers_list : _Lock
+  __running : bool
+  markers_list : dict[tuple[str, int], MarkerRmv]
+  node : Node
+  topic_manager
+  __init__(node, rmv_params: RmvParams) -> None
+  _addMarker(marker: Marker) -> None
+  _cleanMarkersList()
+  _deleteExpiredMarkers()
+  getMarkersList() -> List[MarkerRmv]
+  run() -> None
+}
+class "RmvChore" as rmv_chore.rmv_chore.RmvChore #44BB99 {
+  data_manager
+  node : Node
+  shared_data
+  timer_logger
+  timer_test : Timer
+  visualization
+  {abstract}__del__() -> None
+  __init__() -> None
+  _updateMarkers() -> None
+  _updateMarkersCallBack() -> None
+  getNode() -> Node
+}
+class "SharedData" as rmv_chore.shared_data.SharedData #44BB99 {
+  main_tf
+  markers : List[MarkerRmv]
+  other_tfs : Dict[str, TransformStamped], List[FrameRMV]
+  __init__()
+  get_main_tf() -> FrameRMV
+  get_markers()
+  get_other_tfs() -> List[FrameRMV]
+  update_main_tf(tf: FrameRMV)
+  update_markers(markers: List[MarkerRmv])
+  update_other_tfs(tfs: List[FrameRMV])
+}
+class "SubscriptionManager" as topic_management.subscription_manager.SubscriptionManager #AAAA00 {
+  node : Node
+  subscriptions : Dict[str, Subscription]
+  __init__(node: Node)
+  _getMessageType(type_string: str) -> Type[Marker | MarkerArray]
+  activeTopics() -> List[str]
+  subscribe(topic: str, topic_type: str, callback)
+  unsubscribe(topic: str)
+}
+class "TFManager" as tf_management.tf.TFManager #BBCC33 {
+  __running : bool
+  _lock_graph : _Lock
+  _lock_main_frame : _Lock
+  all_transform_from_main_frame : dict[str, FrameRMV]
+  count : int
+  expiration_duration : float
+  frame_index : int
+  graph
+  main_frame_name : str
+  new_main_frame : bool
+  node : Node
+  start_time
+  timer_logger
+  __init__(node: Node, buffer_timeout: float, cache_duration: float) -> None
+  equalMainFrame(frame: str) -> bool
+  getAllTransformsFromMainFrame() -> dict[str, FrameRMV]
+  getAvailableTFNames() -> List[str]
+  getMainFrame() -> FrameRMV
+  run()
+  setDefaultMainFrame() -> None
+  tfCallback(msg: TFMessage) -> None
+  tfStaticCallback(msg: TFMessage) -> None
+  updateAllTransformsFrom() -> None
+}
+class "TimerLogger" as utils.timer_log.TimerLogger #EEDD88 {
+  enabled : bool
+  executionTimes : list
+  lastLogTime
+  node : Node
+  period : float
+  __init__(node: Node, period: float, enabled: bool)
+  _recordExecutionTime(funcName: str, elapsedTime: float) -> None
+  logExecutionTime(func)
+}
+class "TopicManager" as topic_management.topic_manager.TopicManager #AAAA00 {
+  markers_list : List[Type[Marker | MarkerArray]], list
+  node : Node
+  subscription_manager
+  timer_logger
+  __init__(node: Node, process_period: float) -> None
+  _filterAndValidateTopics(topics: List[Tuple[str, List[str]]], expected_types: List[str]) -> List[Tuple[str, str]]
+  _findMarkersTopics()
+  _hasMatchingType(received_types: List[str], expected_types: List[str]) -> str | None
+  _hasPublisher(topic: str) -> bool
+  _markerCallback(msg: Marker | MarkerArray) -> None
+  _removeUnpublishedTopics(filtered_topics: List[Tuple[str, str]]) -> None
+  _subscribeToTopics(filtered_topics: List[Tuple[str, str]]) -> None
+  cleanMarkersList() -> None
+  extractMarkersList() -> List[Type[Marker | MarkerArray]]
+  findMarkersTopicsCallBack() -> None
+}
+class "Visualization" as visualization.visualization.Visualization #EE8866 {
+  axes_distance : float
+  bridge : CvBridge
+  draw_grid : bool
+  grid_spacing : float
+  image : ndarray
+  node : str
+  publisher
+  shared_data : str
+  __init__(node: 'Node', params: 'VisualizationParams', shared_data: 'SharedData')
+  createNewImage()
+  generateCameraView()
+  isWithinBounds(point)
+  run()
+}
+class "VisualizationParams" as parameters.params.VisualizationParams #99DDFF {
+  background_color : ColorRGBA
+  conversion_ratio : float
+  fps : int
+  height : int
+  publish_image : bool
+  width : int
+  __init__(width: int, height: int, fps: int, background_color: ColorRGBA)
+}
+class "dataManager" as markers_management.markers_manager.dataManager #77AADD {
+  __running : bool
+  __shared_data_lock : _Lock
+  _shared_data
+  main_frame_frame_info
+  markers_manager
+  node : Node
+  tf_manager
+  visu_params
+  __init__(node: Node) -> None
+  _filterMarkersInMainTfFrame(markers_rmv: List[MarkerRmv], relative_transforms: dict[str, FrameRMV]) -> List[MarkerRmv]
+  getSharedData() -> SharedData
+  run()
+}
+visualization.visualization.Visualization --|> visualization.visualization.CameraManager
+markers_management.markers_manager.MarkersManager --* markers_management.markers_manager.dataManager : markers_manager
+markers_management.markers_manager.dataManager --* rmv_chore.rmv_chore.RmvChore : data_manager
+parameters.params.VisualizationParams --* markers_management.markers_manager.dataManager : visu_params
+rmv_chore.shared_data.SharedData --* markers_management.markers_manager.dataManager : _shared_data
+rmv_chore.shared_data.SharedData --* rmv_chore.rmv_chore.RmvChore : shared_data
+tf_management.graph.FrameRMV --* markers_management.markers_manager.dataManager : main_frame_frame_info
+tf_management.graph.FrameRMV --* markers_management.markers_manager.dataManager : main_frame_frame_info
+tf_management.graph.FrameRMV --* rmv_chore.shared_data.SharedData : main_tf
+tf_management.graph.Graph --* tf_management.tf.TFManager : graph
+tf_management.tf.TFManager --* markers_management.markers_manager.dataManager : tf_manager
+topic_management.subscription_manager.SubscriptionManager --* topic_management.topic_manager.TopicManager : subscription_manager
+topic_management.topic_manager.TopicManager --* markers_management.markers_manager.MarkersManager : topic_manager
+utils.timer_log.TimerLogger --* rmv_chore.rmv_chore.RmvChore : timer_logger
+utils.timer_log.TimerLogger --* tf_management.tf.TFManager : timer_logger
+utils.timer_log.TimerLogger --* topic_management.topic_manager.TopicManager : timer_logger
+visualization.visualization.Visualization --* rmv_chore.rmv_chore.RmvChore : visualization
+@enduml

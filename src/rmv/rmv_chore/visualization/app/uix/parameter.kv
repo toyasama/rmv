@@ -1,0 +1,162 @@
+
+<ImageSizeParameter>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: root.height
+
+    CustomLabel:
+        text: root.label_text
+        size_hint_x: 0.4
+
+    AnchorLayout:
+        anchor_x: 'center'
+        anchor_y: 'center'
+        
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.5
+            CustomInput:
+                hint_text: "width"
+                text: root.im_width
+                on_text_validate: root._widthClbk(self.text)
+                size_hint_y: 1
+            CustomInput:
+                hint_text: "height"
+                text: root.im_height
+                on_text_validate: root._heightClbk(self.text)
+                size_hint_y: 1
+
+<ColorParameter>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: root.height
+
+    CustomLabel:
+        text: root.label_text
+        size_hint_x: 0.4
+
+    AnchorLayout:
+        anchor_x: 'center'
+        anchor_y: 'center'
+        
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.5
+            ColorInputParameter:
+                hint_text: "r"
+                text: root.r_color
+                on_text_validate: root._rColorClbk(self.text)
+            ColorInputParameter:
+                hint_text: "g"
+                text: root.g_color
+                on_text_validate: root._gColorClbk(self.text)
+                
+            ColorInputParameter:
+                hint_text: "b"
+                text: root.b_color
+                on_text_validate: root._bColorClbk(self.text)
+                
+
+<ParameterToggle>:
+    orientation: 'horizontal'
+    size_hint_y: None  
+    height: root.height 
+
+    CustomLabel:
+        id: toggle_label
+        text: root.label_text
+        size_hint_x: 0.7
+        color: [0,0,0,1] if not root.disabled_state else [0.6,0.6,0.6,1]
+
+    CheckBox:
+        id: toggle_checkbox
+        active: root.init_state 
+        on_active: root.on_toggle(*args)
+
+<ParameterInput>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: root.height
+
+    CustomLabel:
+        text: root.label_text
+        size_hint_x: 0.5
+
+    AnchorLayout:
+        anchor_x: 'center'
+        anchor_y: 'center'
+        CustomInput:
+            hint_text: root.hint_text
+            text: root.input_text
+            size_hint_y: 0.5
+            on_text_validate: root.callback(self.text)
+            input_filter:root.filter_clbk
+
+<MultipleParameterInput>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: root.height
+
+    Label:
+        text: root.label_text
+        size_hint_x: 0.5
+        halign: 'center'
+        valign: 'center'
+        font_size: min(self.height * 0.5, self.width * 0.5)
+        color: [0, 0, 0, 1]
+        text_size: self.size
+
+    AnchorLayout:
+        anchor_x: 'center'
+        anchor_y: 'center'
+        CustomInput:
+            hint_text: root.hint_text
+            text: root.input_text
+            size_hint_y: 0.3
+            on_text_validate: root.callback(self.text)
+            input_filter:root.filter_clbk
+
+<MainFrameParameter>:
+    size_hint_y: None
+    height: root.height
+
+    CustomLabel:
+        text: "Main frame"
+        size_hint_x: 0.5
+    AnchorLayout:
+        anchor_x: 'center'
+        anchor_y: 'center'
+        CustomInput:
+            hint_text: "Enter frame name"
+            text: root.main_frame_name
+            size_hint: 0.8, 0.3
+            on_text_validate: root.callback(self.text)
+<GroupParameter@Label>:
+    canvas.before:
+        Color:
+            rgba:[ 0, 0, 0, 1]
+        Rectangle:
+            size: self.size
+            pos: self.pos
+    color: [1, 1, 1, 1]
+    font_size: sp(self.width  * 0.1)
+    size_hint_y: None
+    height: root.height 
+
+
+<SubFramesParameter>:
+    size_hint_y: None
+    orientation: "vertical"
+    canvas.before:
+        Color:
+            rgba: [0.5, 0.5, 0.5, 1]
+        Rectangle:
+            size: self.size
+            pos: self.pos
+    BoxLayout:
+        orientation: "horizontal"
+        Button:
+            text: "Sub frames" 
+            on_press: root.toggleExtension()
+            background_normal: ''
+            background_color: [0.2, 0.2, 0.2, 0.5]

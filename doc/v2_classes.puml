@@ -1,0 +1,278 @@
+@startuml classes
+set namespaceSeparator none
+class "BaseGraph" as src.library.library.tf_management.graph.BaseGraph #77AADD {
+  _graph : DiGraph
+  _graph_lock : _RLock
+  _lock_main_frame : _RLock
+  _main_frame : str
+  _running : bool
+  _worker_thread : Thread
+  begin
+  count : int
+  rmv_params
+  __del__()
+  __init__(rmv_params: RmvParameters)
+  _removeExpiredEdges()
+  {abstract}_update()
+  _workerLoop()
+}
+class "BaseMessage" as src.library.library.markers_management.markers.BaseMessage #77AADD {
+  message_type : Type[Marker | MarkerArray]
+  __init__(message_type: Type[Marker | MarkerArray])
+  {abstract}process(message, time: Time)
+}
+class "CameraExtrinsics" as src.library.library.utils.camera.CameraExtrinsics #77AADD {
+  extrinsic_matrix
+  params
+  __init__(params: VisualizationParameters)
+}
+class "CameraIntrinsics" as src.library.library.utils.camera.CameraIntrinsics #77AADD {
+  intrinsic_matrix
+  params
+  __init__(params: VisualizationParameters)
+}
+class "CameraManager" as src.library.library.utils.camera.CameraManager #77AADD {
+  __extrinsics
+  __intrinsics
+  __params
+  camera_distance
+  fov
+  fx
+  __init__(params: VisualizationParameters)
+  projectToImage(point_camera: np.ndarray) -> Tuple[int, int] | None
+  worldToCamera(point: np.ndarray) -> np.ndarray
+}
+class "FramesParameters" as src.library.library.parameters.frame_parameter.FramesParameters #77AADD {
+  _axes_length : float
+  _locks : dict
+  _main_frame : str
+  _show_axes : bool
+  _show_connections : bool
+  _show_frame_names : bool
+  _show_sub_frames : bool
+  _sub_frames : List[str]
+  axes_length
+  main_frame
+  show_axes
+  show_connections
+  show_frame_names
+  show_sub_frames
+  sub_frames
+  __dict__() -> Dict[str, Any]
+  {abstract}__init__() -> None
+  __post_init__()
+  addSubFrame(frame_name: str) -> None
+  removeSubFrame(frame_name: str) -> None
+  toDict() -> Dict[str, Any]
+  toggleAxes() -> None
+  toggleConnections() -> None
+  toggleFrameNames() -> None
+  toggleSubFrames() -> None
+  updateSubFrame(frame_list: List) -> None
+}
+class "MarkerArrayMessage" as src.library.library.markers_management.markers.MarkerArrayMessage #77AADD {
+  __init__()
+  process(message: MarkerArray, time: Time) -> List[MarkerRmv]
+}
+class "MarkerMessage" as src.library.library.markers_management.markers.MarkerMessage #77AADD {
+  __init__()
+  process(message: Marker, time: Time) -> MarkerRmv
+}
+class "MarkerRmv" as src.library.library.markers_management.markers.MarkerRmv #77AADD {
+  __eq__(value)
+  __init__(marker: Marker, current_time: Time)
+}
+class "MarkerRmvBase" as src.library.library.markers_management.markers.MarkerRmvBase #77AADD {
+  _marker : Marker
+  _modified_pose : NoneType, Pose
+  _pub_time : Time
+  color
+  frame_id
+  identifier
+  lifetime
+  modified_pose
+  points
+  pose
+  scale
+  type
+  __init__(marker: Marker, reception_time: Time)
+  getTransform()
+  isExpired(current_time: Time) -> bool
+}
+class "MarkersHandler" as src.library.library.markers_management.markers.MarkersHandler #77AADD {
+  __delete_markers_thread : Optional[Thread]
+  __lock_markers_list : _RLock
+  __lock_new_msgs : _RLock
+  __markers : dict[tuple[str, int], MarkerRmv]
+  __merge_markers_thread : Optional[Thread]
+  __new_markers : dict[tuple[str, int], MarkerRmv]
+  __new_msgs : List[MarkerArray | Marker]
+  __node : Node
+  __running : bool
+  markers
+  __del__()
+  __init__(node: Node)
+  __mergeNewMarkers()
+  __processMessage()
+  _deleteExpiredMarkers()
+  addMarker(marker: Marker | MarkerArray)
+  clearMarkersList()
+}
+class "RmvParameters" as src.library.library.parameters.params.RmvParameters #77AADD {
+  __path : str
+  frames
+  visualization
+  __init__(path: str)
+  _applyDefaults(data: Dict) -> Dict
+  _loadYaml() -> Dict
+  _mergeDefaults(defaults: Dict, data: Dict) -> Dict
+  _saveYaml()
+  _update_frames(data: Dict[str, Any]) -> None
+  _update_visualization(data: Dict[str, Any]) -> None
+  convertData(data: Any) -> Any
+  get()
+  save()
+  set(value)
+}
+class "RmvTransform" as src.library.library.tf_management.transform_rmv.RmvTransform #77AADD {
+  _drawer_info
+  _initial_direction : bool
+  drawer_info
+  __eq__(value) -> bool
+  __hash__() -> int
+  __init__(transform_stamped: TransformStamped, static: bool)
+  updateTransformDrawerInfo(main_frame: str, pose_in_main_frame: Transform, start_connection: Transform, end_connection: Transform) -> None
+}
+class "SubscriptionManager" as src.library.library.topic_management.subscription_manager.SubscriptionManager #77AADD {
+  __subscriptions : Dict[str, Subscription]
+  _node : Node
+  active_topics
+  marker_handler
+  __init__(node: Node, markers_handler: MarkersHandler)
+  _getMessageType(type_string: str) -> Type[Marker | MarkerArray]
+  callback(message: Marker | MarkerArray)
+  subscribe(topic: str, topic_type: str)
+  unsubscribe(topic: str)
+}
+class "TFManager" as src.library.library.tf_management.tf.TFManager #77AADD {
+  node : Node
+  transform_graph
+  __init__(node: Node, transform_graph: TransformGraph) -> None
+  tfCallback(msg: TFMessage) -> None
+  tfStaticCallback(msg: TFMessage) -> None
+}
+class "TopicManager" as src.library.library.topic_management.topic_manager.TopicManager #77AADD {
+  __findMarkersTopics()
+  __findMarkersTopicsCallBack() -> None
+  __init__(node: Node, markers_handler: MarkersHandler) -> None
+  _filter(topics: List[Tuple[str, List[str]]], expected_types: List[str]) -> List[Tuple[str, str]]
+  _hasMatchingType(received_types: List[str], expected_types: List[str]) -> str | None
+  _hasPublisher(topic: str) -> bool
+  _removeUnpublishedTopics(filtered_topics: List[Tuple[str, str]]) -> None
+  _subscribeToTopics(filtered_topics: List[Tuple[str, str]]) -> None
+}
+class "TransformBase" as src.library.library.tf_management.transform_rmv.TransformBase #77AADD {
+  __expiration_duration : float
+  _name : str
+  _parent : str
+  _static : bool
+  _timestamp : float
+  _transform : Transform
+  isExpired
+  name
+  opacity
+  parent
+  transform
+  __eq__(value) -> bool
+  __init__(transform_stamped: TransformStamped, static: bool)
+  update(transform_stamped: TransformStamped) -> None
+}
+class "TransformDrawerInfo" as src.library.library.tf_management.transform_rmv.TransformDrawerInfo #77AADD {
+  __associated_transform
+  _end_connection : Transform
+  _main_frame : str
+  _pose_in_main_frame : Transform
+  _start_connection : Transform
+  end_connection
+  main_frame
+  opacity
+  parent
+  pose_in_main_frame
+  start_connection
+  transform_name
+  __init__(Transform_base: TransformBase)
+  __repr__()
+  __str__() -> str
+  toDraw(main_frame) -> bool
+  update(main_frame: str, pose_in_main_frame: Transform, start_connection: Transform, end_connection: Transform) -> None
+}
+class "TransformGraph" as src.library.library.tf_management.graph.TransformGraph #77AADD {
+  __sub_frames : list
+  __sub_frames_lock : _RLock
+  _main_frame
+  frames
+  main_frame
+  sub_frames
+  __init__(rmv_params: RmvParameters)
+  _computeTransformInfo(path: List[str])
+  _update()
+  addTransform(transform_stamped: TransformStamped, static: bool)
+  getTransform(parent: str, child: str) -> Optional[Transform]
+  getTransformsFromMainFrame() -> List[TransformDrawerInfo]
+  inverseTransformMsg(transform_stamped: TransformStamped) -> TransformStamped
+}
+class "VisualizationParameters" as src.library.library.parameters.visualization_parameter.VisualizationParameters #77AADD {
+  _background_color : Dict[str, int]
+  _camera : Dict[str, Dict[str, Any]]
+  _draw_grid : bool
+  _fps : int
+  _grid_color : Dict[str, int]
+  _grid_spacing : float
+  _height : int
+  _locks : dict
+  _width : int
+  background_color
+  camera_position
+  draw_grid
+  fov
+  fps
+  grid_color
+  grid_spacing
+  height
+  resolution
+  width
+  __dict__() -> Dict[str, Any]
+  {abstract}__init__() -> None
+  __post_init__()
+  setResolution(width: Optional[int], height: Optional[int], fov: Optional[int]) -> None
+  toDict() -> Dict[str, Any]
+  toggleDrawGrid()
+  updateBackgroundColor(r: Optional[int], g: Optional[int], b: Optional[int]) -> None
+  updateCameraFOV(fov: int) -> None
+  updateCameraPosition(x: Optional[float], y: Optional[float], z: Optional[float], theta: Optional[float]) -> None
+  updateCameraPositionTheta(theta: float) -> None
+  updateCameraPositionX(x: float) -> None
+  updateCameraPositionY(y: float) -> None
+  updateCameraPositionZ(z: float) -> None
+  updateGridColor(r: Optional[int], g: Optional[int], b: Optional[int]) -> None
+  updateGridSpacing(spacing: float) -> None
+}
+src.library.library.markers_management.markers.MarkerArrayMessage --|> src.library.library.markers_management.markers.BaseMessage
+src.library.library.markers_management.markers.MarkerMessage --|> src.library.library.markers_management.markers.BaseMessage
+src.library.library.markers_management.markers.MarkerRmv --|> src.library.library.markers_management.markers.MarkerRmvBase
+src.library.library.tf_management.graph.TransformGraph --|> src.library.library.tf_management.graph.BaseGraph
+src.library.library.tf_management.transform_rmv.RmvTransform --|> src.library.library.tf_management.transform_rmv.TransformBase
+src.library.library.topic_management.topic_manager.TopicManager --|> src.library.library.topic_management.subscription_manager.SubscriptionManager
+src.library.library.parameters.frame_parameter.FramesParameters --* src.library.library.parameters.params.RmvParameters : frames
+src.library.library.parameters.visualization_parameter.VisualizationParameters --* src.library.library.parameters.params.RmvParameters : visualization
+src.library.library.tf_management.transform_rmv.TransformDrawerInfo --* src.library.library.tf_management.transform_rmv.RmvTransform : _drawer_info
+src.library.library.utils.camera.CameraExtrinsics --* src.library.library.utils.camera.CameraManager : __extrinsics
+src.library.library.utils.camera.CameraIntrinsics --* src.library.library.utils.camera.CameraManager : __intrinsics
+src.library.library.markers_management.markers.MarkersHandler --o src.library.library.topic_management.subscription_manager.SubscriptionManager : marker_handler
+src.library.library.parameters.params.RmvParameters --o src.library.library.tf_management.graph.BaseGraph : rmv_params
+src.library.library.parameters.visualization_parameter.VisualizationParameters --o src.library.library.utils.camera.CameraExtrinsics : params
+src.library.library.parameters.visualization_parameter.VisualizationParameters --o src.library.library.utils.camera.CameraIntrinsics : params
+src.library.library.parameters.visualization_parameter.VisualizationParameters --o src.library.library.utils.camera.CameraManager : __params
+src.library.library.tf_management.graph.TransformGraph --o src.library.library.tf_management.tf.TFManager : transform_graph
+src.library.library.tf_management.transform_rmv.TransformBase --o src.library.library.tf_management.transform_rmv.TransformDrawerInfo : __associated_transform
+@enduml

@@ -1,0 +1,16 @@
+{
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/build/library/",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "/home/devuser/.local/lib/python3.10/site-packages",
+        "/usr/local/lib/python3.10/dist-packages",
+        "/usr/lib/python3/dist-packages",
+        "/usr/lib/python3.10",
+        "/usr/lib/python3.10/lib-dynload",
+        "/usr/lib/python310.zip",
+        "/home/devuser/workspace/install/library/lib/python3.10/site-packages",
+        "/home/devuser/workspace/build/library",
+        "/usr/local/lib/python3.10/dist-packages/kivy//__init__.py",
+    ]
+}
