@@ -1,7 +1,6 @@
 # Official ROS2 Humble Image with Desktop Support
 FROM osrf/ros:humble-desktop
 
-
 # Python dependencies
 RUN rm -rf /var/lib/apt/lists/* && apt-get update
 
@@ -9,7 +8,9 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     git \
     build-essential \
-    && apt-get clean
+    ros-humble-rmw-cyclonedds-cpp \  
+    && apt-get clean 
+
 
 RUN pip3 install git+https://github.com/DLu/tf_transformations.git
 
@@ -24,7 +25,6 @@ RUN pip3 install --no-cache-dir \
     flask
 
 # Kivy installation
-
 ENV USE_SDL2=1
 ENV USE_GSTREAMER=1
 
@@ -40,7 +40,7 @@ RUN apt-get update -o Acquire::http::Pipeline-Depth=0 && apt-get install -y --no
 
 # Install Kivy library
 RUN python3 -m pip install --no-cache-dir --upgrade pip wheel Cython \
-    &&python3 -m pip install --no-cache-dir setuptools==58.2.0 wheel \
+    && python3 -m pip install --no-cache-dir setuptools==58.2.0 wheel \
     && python3 -m pip install --no-cache-dir docutils pygments kivy[base] kivy[pygame] kivy[angle_sdl2] \
     && python3 -m pip install --no-cache-dir https://github.com/kivymd/KivyMD/archive/master.zip \
     && python3 -m pip install --no-cache-dir gitpython 
@@ -66,8 +66,16 @@ RUN echo 'HISTFILE=~/.bash_history' >> /home/devuser/.bashrc \
     && echo 'shopt -s histappend' >> /home/devuser/.bashrc \
     && echo 'PROMPT_COMMAND="history -a; $PROMPT_COMMAND"' >> /home/devuser/.bashrc
 
-RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+# Configuration ROS2 et Cyclone DDS
+RUN echo "source /opt/ros/humble/setup.bash" >> /home/devuser/.bashrc
 RUN echo ". /home/devuser/workspace/install/setup.bash" >> /home/devuser/.bashrc
+RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /home/devuser/.bashrc
+RUN echo "export CYCLONEDDS_URI=file:///home/devuser/workspace/cyclonedds.xml" >> /home/devuser/.bashrc
 
-# Expose ROS2 ports for communication
-EXPOSE 11311
+COPY entrypoint.sh /entrypoint.sh
+USER root 
+RUN chmod +x /entrypoint.sh
+
+USER $USERNAME
+ENTRYPOINT ["/entrypoint.sh"]
+    

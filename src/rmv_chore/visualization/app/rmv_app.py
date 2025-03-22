@@ -11,10 +11,8 @@ from visualization.app.uix import CustomInput, CustomLabel
 from visualization.app.uix.parameter import ParameterInput, ParameterToggle, MultipleParameterInput, ImageSizeParameter
 from visualization.app.uix.control_panel import ControlPanel
 
-from visualization.visualization import Visualization
-from library import (RmvParameters, TransformGraph)
+from rmv_chore.rmv_chore_node import RMVChoreNode
 from kivy.core.window import Window
-from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty
 
 Window.minimum_width, Window.minimum_height = 1200, 800
 
@@ -43,16 +41,17 @@ class Rmv(BoxLayout):
         self.ids.video_feed.texture = texture
         
 class RmvApp(App):
-    def __init__(self, visualization: Visualization, rmv_params: RmvParameters,transform_graph:TransformGraph, **kwargs):
+    def __init__(self, rmv_node:RMVChoreNode, **kwargs):
         super().__init__(**kwargs)
-        self.visualization = visualization
-        self.rmv_params = rmv_params
-        self.transform_graph = transform_graph
+        self.visualization = rmv_node.visualization
+        self.rmv_params = rmv_node.parameters
+        self.transform_graph = rmv_node.transform_graph
         self.rmv_ui = None  
+        self.period = rmv_node.period
 
     def build(self):
         self.rmv_ui = Rmv()
-        Clock.schedule_interval(self.updateUi, 1 / 30)
+        Clock.schedule_interval(self.updateUi, self.period)
         return self.rmv_ui
 
     def updateUi(self, dt):

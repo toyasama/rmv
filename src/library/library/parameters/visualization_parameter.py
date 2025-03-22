@@ -6,7 +6,7 @@ from threading import RLock
 class VisualizationParameters:
     _width: int = field(default=100, init=False)
     _height: int = field(default=100, init=False)
-    _fps: int = field(default=30, init=False)
+    _fps: int = field(default=10, init=False)
     _draw_grid: bool = field(default=True, init=False)
     _background_color: Dict[str, int] = field(default_factory=lambda: {'r': 0, 'g': 0, 'b': 0}, init=False)
     _grid_color: Dict[str, int] = field(default_factory=lambda: {'r': 255, 'g': 255, 'b': 255}, init=False)

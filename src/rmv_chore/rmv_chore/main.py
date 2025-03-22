@@ -1,70 +1,85 @@
 import rclpy
-from pathlib import Path 
-from rclpy.node import Node
-from time import time
-from typing import List, Dict
+from rclpy.executors import MultiThreadedExecutor
 import threading
+import time
+import asyncio
 
-from library import (TransformDrawerInfo, TransformGraph, MarkerRmv, TFManager, MarkersHandler, TopicManager, TransformUtils, RmvParameters)
-from visualization.visualization import Visualization
-from visualization.app.rmv_app import RmvApp
+from rmv_chore.rmv_chore_node import RMVChoreNode
+from visualization.webserber import WebServer
 
-class RMVChoreNode(Node):
-    def __init__(self):
-        super().__init__("rmv_chore", namespace="rmv")
-        parent_dir = Path(__file__).resolve().parent.parent
-        paremeter_file = parent_dir / "config" / "params.yml"
-        self.parameters = RmvParameters(str(paremeter_file))
-        self.transform_graph = TransformGraph(self.parameters)
-        self.tf_manager = TFManager(self, self.transform_graph)
-        self.markers_handler = MarkersHandler(self)
 
-        self.visualization = Visualization(self, self.parameters, self.transform_graph)
-        self.topic_manager = TopicManager(self, self.markers_handler)
-        period = 1/self.parameters.visualization.fps
-        self.create_timer(period, self.visualize)
-        self.get_logger().info("RMV Chore node initialized successfully.")
+class Config:
+    USE_WEB_SERVER = True
+    USE_DESKTOP_APP = True
+    PUBLISH_ON_ROS = True
 
-    def projectToMainFrame(self, markers: List[MarkerRmv], transforms: List[TransformDrawerInfo]) -> List[MarkerRmv]:
-        main_frame = self.transform_graph.main_frame
-        transform_dict: Dict[str, TransformDrawerInfo] = {transform.transform_name: transform.pose_in_main_frame for transform in transforms}
-        projected_markers = []
-        for marker in markers:
-            if marker.frame_id == main_frame:
-                marker.modified_pose = marker.pose
-                projected_markers.append(marker)
-            elif marker.frame_id in transform_dict:
-                pose_in_main_frame = TransformUtils.transformPoseToParentFrame(marker.pose, transform_dict[marker.frame_id])
-                if pose_in_main_frame:
-                    marker.modified_pose = pose_in_main_frame
-                    projected_markers.append(marker)
-        return projected_markers
+RmvApp = None
+if Config.USE_DESKTOP_APP:
+    from visualization.app.rmv_app import RmvApp
 
-    def visualize(self):
-        start_time = time()
-        markers = self.markers_handler.markers
-        markers = self.projectToMainFrame(markers, self.transform_graph.getTransformsFromMainFrame())
-        self.visualization.visualize(markers)
-        
 
-def run_ros2_node(node: RMVChoreNode):
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+class WebServerThread(threading.Thread):
+    
+    def __init__(self, node: RMVChoreNode):
+        super().__init__(daemon=True)
+        self.node = node
+        self.web_server = WebServer()
+        self.stop_event = threading.Event()
+
+    def run(self):
+        self.node.get_logger().info("Web server thread started.")
+        while not self.stop_event.is_set() and self.node.visualization:
+            image = self.node.visualization.image
+            self.web_server.updateImage(image)
+            time.sleep(self.node.period)
+
+    def stop(self):
+        self.stop_event.set()
+
+
+async def start_kivy_app(node):
+    if RmvApp:
+        node.get_logger().info("Starting desktop app.")
+        app = RmvApp(node)
+        await app.async_run()  
+
+
+def spin_executor(executor):
+    executor.spin()
+
 
 def main():
     rclpy.init()
-    node = RMVChoreNode()
-    ros_thread = threading.Thread(target=run_ros2_node, daemon=True, args=(node,))
-    ros_thread.start()
+    node = RMVChoreNode(Config.PUBLISH_ON_ROS)
+
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+
+    web_thread = None
+    if Config.USE_WEB_SERVER:
+        node.get_logger().info("Starting web server.")
+        web_thread = WebServerThread(node)
+        web_thread.start()
+
+    loop = asyncio.get_event_loop()
+    
     try:
-        RmvApp(node.visualization, node.parameters, node.transform_graph).run()
-    except ...:
-        print("An error occurred.")
+        spin_thread = threading.Thread(target=spin_executor, args=(executor,), daemon=True)
+        spin_thread.start()
+
+        if Config.USE_DESKTOP_APP:
+            loop.create_task(start_kivy_app(node))
+        loop.run_forever()  
+
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down...")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+        if web_thread:
+            web_thread.stop()
+            web_thread.join()
+
 
 if __name__ == "__main__":
     main()

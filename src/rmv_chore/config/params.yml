@@ -23,7 +23,7 @@ RMV:
         y: 0
         z: 7.0
     draw_grid: true
-    fps: 30
+    fps: 15
     grid_color:
       b: 255
       g: 255

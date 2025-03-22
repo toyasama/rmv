@@ -1,24 +1,31 @@
 RMV:
-  # Parameters related to visualization
+  frames:
+    axes_length: 0.1
+    main_frame: ""
+    show_axes: false
+    show_connections: true
+    show_frame_names: true
+    show_sub_frames: false
+    sub_frames:
+    - ""
   visualizations:
-    # Parameters related to the image
-    width: 800
-    height: 500
-    fps: 30
-    draw_grid: true
     background_color:
-      r: 0
-      g: 0
-      b: 0
-    grid_color:
-      b: 0.5
-      g: 0.5
-      r: 0.5
-    # Parameters related to the camera
+      b: 25
+      g: 25
+      r: 25
     camera:
+      fov_deg: 60
       position:
+        theta: 0
         x: 0
         y: 0
-        z: 5
-        theta: 0 #degrees
-      fov_deg: 60
+        z: 5.0
+    draw_grid: true
+    fps: 10
+    grid_color:
+      b: 255
+      g: 255
+      r: 255
+    grid_spacing: 1.0
+    height: 500
+    width: 800
