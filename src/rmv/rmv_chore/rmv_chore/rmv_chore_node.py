@@ -1,8 +1,7 @@
 from pathlib import Path 
 from rclpy.node import Node
 from rmv_library import (TransformDrawerInfo, TransformGraph, MarkerRmv, TFManager, MarkersHandler, TopicManager, TransformUtils, RmvParameters)
-from visualization.visualization import Visualization
-from time import time
+from rmv_visualization.visualization import Visualization
 from typing import List, Dict
 
 class RMVChoreNode(Node):
@@ -20,6 +19,7 @@ class RMVChoreNode(Node):
         self.period = 1/self.parameters.visualization.fps
         self.create_timer(self.period, self.visualize)
         self.get_logger().info("RMV Chore node initialized successfully.")
+        
 
     def projectToMainFrame(self, markers: List[MarkerRmv], transforms: List[TransformDrawerInfo]) -> List[MarkerRmv]:
         main_frame = self.transform_graph.main_frame

@@ -5,7 +5,7 @@ import time
 import asyncio
 
 from rmv_chore.rmv_chore_node import RMVChoreNode
-from visualization.webserber import WebServer
+from rmv_visualization.webserber import WebServer
 
 
 class Config:
@@ -15,7 +15,7 @@ class Config:
 
 RmvApp = None
 if Config.USE_DESKTOP_APP:
-    from visualization.app.rmv_app import RmvApp
+    from rmv_visualization.app.rmv_app import RmvApp
 
 
 class WebServerThread(threading.Thread):
