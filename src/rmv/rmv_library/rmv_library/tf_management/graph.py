@@ -12,7 +12,7 @@ class BaseGraph(ABC):
     """Base class managing a directed graph with thread-safe operations."""
     def __init__(self,  rmv_params: RmvParameters):
         self.rmv_params = rmv_params   
-        self._graph = nx.DiGraph()
+        self._graph:nx.DiGraph = nx.DiGraph()
         self._graph_lock = RLock()
         self._running = True
         self._main_frame: str = rmv_params.frames.main_frame
@@ -66,6 +66,8 @@ class TransformGraph(BaseGraph):
             if (parent_frame, child_frame) in self._graph.edges:
                 self._graph[parent_frame][child_frame]["frameInfo"].update(transform_stamped)
                 self._graph[child_frame][parent_frame]["frameInfo"].update(self.inverseTransformMsg(transform_stamped))
+                translation = self._graph[parent_frame][child_frame]["frameInfo"].transform.translation
+                print(f"Updated transform from {parent_frame} to {child_frame} : {translation.x}, {translation.y}, {translation.z}")
                 return
                 
 
@@ -100,7 +102,7 @@ class TransformGraph(BaseGraph):
         with self._graph_lock:
             for parent, child in self._graph.edges:
                 edge_data: RmvTransform = self._graph[parent][child]["frameInfo"]
-                if edge_data.drawer_info.main_frame == self._main_frame or edge_data.name == self._main_frame:
+                if  edge_data.name == self._main_frame:
                     continue
                 try:
                     path = nx.shortest_path(self._graph, source=self._main_frame, target=edge_data.name)
