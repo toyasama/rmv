@@ -54,12 +54,10 @@ class DrawFrame:
         proj_x_end = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos_x_end))
         proj_y_end = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos_y_end))
         proj = camera_manager.projectToImage(camera_manager.worldToCamera(frame_pos))
-        if not parameters.frames.show_sub_frames:
-            show_one_end = transform_info.transform_name in parameters.frames.sub_frames or transform_info.transform_name in parameters.frames.main_frame
-            show_other_end = transform_info.parent in parameters.frames.sub_frames or transform_info.parent in parameters.frames.main_frame
-        else:
-            show_one_end = True
-            show_other_end = True
+        
+        show_one_end = transform_info.transform_name in parameters.frames.sub_frames or transform_info.transform_name in parameters.frames.main_frame
+        show_other_end = transform_info.parent in parameters.frames.sub_frames or transform_info.parent in parameters.frames.main_frame
+
         
         if parameters.frames.show_connections and show_one_end and show_other_end:
             start_connection =np.array([transform_info.start_connection.translation.x, transform_info.start_connection.translation.y, transform_info.start_connection.translation.z])
@@ -137,7 +135,6 @@ class DrawFrame:
         """
         Draw X and Y axes of a frame.
         """
-
         DrawFrame.drawArrow(image, frame_position.start, frame_position.end_x, color=(0, 0, 255),opacity=opacity, thickness=thickness)
         DrawFrame.drawArrow(image, frame_position.start, frame_position.end_y, color=(0, 255, 0),opacity=opacity, thickness=thickness)
     
@@ -172,6 +169,7 @@ class DrawMarkers:
                     
                 case  Marker.LINE_STRIP:
                     DrawMarkers.drawLineStrip(image, marker, camera_manager)
+                    
     
     @staticmethod
     def drawCube(image: np.ndarray, marker, camera_manager: CameraManager) -> None:

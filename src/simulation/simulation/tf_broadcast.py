@@ -74,6 +74,8 @@ class StaticTFPublisher(Node):
         Publish the frame_3 static transform.
         """
         self.frame3Transform.header.stamp = self.get_clock().now().to_msg()
+        self.frame3Transform.transform.translation.x = -2 + np.random.uniform(-0.5, 0.5)
+        self.frame3Transform.transform.translation.y = -2 + np.random.uniform(-0.5, 0.5)
         self.tfBroadcaster.sendTransform([self.frame3Transform])
     
     def publishFrame6(self)->None:
@@ -81,6 +83,8 @@ class StaticTFPublisher(Node):
         Publish the frame_6 static transform.
         """
         self.transform3To6.header.stamp = self.get_clock().now().to_msg()
+        self.transform3To6.transform.translation.x = -1 + np.random.uniform(-0.5, 0.5)
+        self.transform3To6.transform.translation.y = 1 + np.random.uniform(-0.5, 0.5)
         self.tfBroadcaster.sendTransform([self.transform3To6])
 
 def main(args=None):

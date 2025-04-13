@@ -112,11 +112,15 @@ class TransformGraph(BaseGraph):
                     continue
                 if edge_data._initial_direction:
                     inverse_transform = self.getTransform(child, parent)
+                    if not inverse_transform or not transform_from_main:
+                        continue
                     start_connection = TransformUtils.combineTransforms(transform_from_main, inverse_transform)
                     end_connection = transform_from_main
                     self._graph[parent][child]["frameInfo"].updateTransformDrawerInfo(self._main_frame,transform_from_main, start_connection, end_connection)
                 else:
                     inverse_transform = self.getTransform(child, parent)
+                    if not inverse_transform or not transform_from_main:
+                        continue
                     end_connection = TransformUtils.combineTransforms(transform_from_main, inverse_transform)
                     start_connection = transform_from_main
                     self._graph[child][parent]["frameInfo"].updateTransformDrawerInfo(self._main_frame,transform_from_main, start_connection, end_connection)

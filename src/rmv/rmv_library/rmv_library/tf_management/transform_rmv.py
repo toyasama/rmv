@@ -7,7 +7,6 @@ class TransformBase:
         self._name: str = transform_stamped.child_frame_id
         self._parent: str = transform_stamped.header.frame_id
         self._transform: Transform = transform_stamped.transform
-        self._timestamp: float = transform_stamped.header.stamp.sec + transform_stamped.header.stamp.nanosec * 1e-9
         self._received_time: float = time.time()
         self._static = static
         
@@ -27,7 +26,7 @@ class TransformBase:
     def opacity(self) -> float:
         if self._static:
             return 1.0
-        elapsed_time = time.time() - self._timestamp
+        elapsed_time = time.time() - self._received_time
         return max(0,1.0 - elapsed_time / self.__expiration_duration)
     
     @property
@@ -40,7 +39,7 @@ class TransformBase:
             print(f"Old transform: {self.name} -> {self.parent}")
             print(f"New transform: {transform_stamped.child_frame_id} -> {transform_stamped.header.frame_id}")
             return
-        self._timestamp = transform_stamped.header.stamp.sec + transform_stamped.header.stamp.nanosec * 1e-9
+        self._received_time = time.time()
         self._transform = transform_stamped.transform
         
         

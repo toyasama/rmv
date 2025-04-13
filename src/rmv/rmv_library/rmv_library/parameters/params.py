@@ -103,6 +103,8 @@ class RmvParameters:
             self.frames.toggleConnections() if self.frames.show_connections != data['show_connections'] else None
         if 'axes_length' in data:
             self.frames.axes_length = data['axes_length']
+        if 'show_sub_frames' in data:
+            self.frames.toggleSubFrames() if self.frames.show_sub_frames != data['show_sub_frames'] else None
 
     def get(self, *keys):
         """Retrieve a value from the given keys."""
