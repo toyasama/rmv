@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import cv2
 
+from rmv_visualization.app.uix.control_panel import ControlPanel
 from rmv_chore.rmv_chore_node import RMVChoreNode
 from kivy.core.window import Window
 

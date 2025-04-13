@@ -8,6 +8,7 @@ class TransformBase:
         self._parent: str = transform_stamped.header.frame_id
         self._transform: Transform = transform_stamped.transform
         self._timestamp: float = transform_stamped.header.stamp.sec + transform_stamped.header.stamp.nanosec * 1e-9
+        self._received_time: float = time.time()
         self._static = static
         
     @property
@@ -31,7 +32,7 @@ class TransformBase:
     
     @property
     def isExpired(self) -> bool:
-        return not self._static and time.time() > self._timestamp + self.__expiration_duration
+        return not self._static and time.time() > self._received_time + self.__expiration_duration
     
     def update(self, transform_stamped: TransformStamped) -> None:
         if not self == transform_stamped:

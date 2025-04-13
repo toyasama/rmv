@@ -17,7 +17,6 @@ class BaseGraph(ABC):
         self._running = True
         self._main_frame: str = rmv_params.frames.main_frame
         self._lock_main_frame = RLock()
-        self.count = 0
         self.begin = time.time()
         
         self._worker_thread = Thread(target=self._workerLoop, daemon=True)
@@ -62,12 +61,11 @@ class TransformGraph(BaseGraph):
         """Add a transform to the graph from a TransformStamped message."""
         parent_frame = transform_stamped.header.frame_id
         child_frame = transform_stamped.child_frame_id
+        
         with self._graph_lock:
             if (parent_frame, child_frame) in self._graph.edges:
                 self._graph[parent_frame][child_frame]["frameInfo"].update(transform_stamped)
                 self._graph[child_frame][parent_frame]["frameInfo"].update(self.inverseTransformMsg(transform_stamped))
-                translation = self._graph[parent_frame][child_frame]["frameInfo"].transform.translation
-                print(f"Updated transform from {parent_frame} to {child_frame} : {translation.x}, {translation.y}, {translation.z}")
                 return
                 
 
@@ -106,21 +104,22 @@ class TransformGraph(BaseGraph):
                     continue
                 try:
                     path = nx.shortest_path(self._graph, source=self._main_frame, target=edge_data.name)
-                    transform_from_main = self._computeTransformInfo(path)
-                    if not transform_from_main:
-                        continue
-                    if edge_data._initial_direction:
-                        inverse_transform = self.getTransform(child, parent)
-                        start_connection = TransformUtils.combineTransforms(transform_from_main, inverse_transform)
-                        end_connection = transform_from_main
-                        self._graph[parent][child]["frameInfo"].updateTransformDrawerInfo(self._main_frame,transform_from_main, start_connection, end_connection)
-                    else:
-                        inverse_transform = self.getTransform(child, parent)
-                        end_connection = TransformUtils.combineTransforms(transform_from_main, inverse_transform)
-                        start_connection = transform_from_main
-                        self._graph[child][parent]["frameInfo"].updateTransformDrawerInfo(self._main_frame,transform_from_main, start_connection, end_connection)
                 except nx.NetworkXNoPath:
                     continue
+                
+                transform_from_main = self._computeTransformInfo(path)
+                if not transform_from_main:
+                    continue
+                if edge_data._initial_direction:
+                    inverse_transform = self.getTransform(child, parent)
+                    start_connection = TransformUtils.combineTransforms(transform_from_main, inverse_transform)
+                    end_connection = transform_from_main
+                    self._graph[parent][child]["frameInfo"].updateTransformDrawerInfo(self._main_frame,transform_from_main, start_connection, end_connection)
+                else:
+                    inverse_transform = self.getTransform(child, parent)
+                    end_connection = TransformUtils.combineTransforms(transform_from_main, inverse_transform)
+                    start_connection = transform_from_main
+                    self._graph[child][parent]["frameInfo"].updateTransformDrawerInfo(self._main_frame,transform_from_main, start_connection, end_connection)
 
     def _computeTransformInfo(self, path: List[str]):
         """Compute the combined transform for a given path."""
@@ -161,6 +160,7 @@ class TransformGraph(BaseGraph):
         with self._graph_lock:
             for parent, child in self._graph.edges:
                 edge_data: RmvTransform = self._graph[parent][child]["frameInfo"]
+                
                 if edge_data.drawer_info.main_frame == self._main_frame:
                     drawer_list.append(edge_data.drawer_info)
             return drawer_list 
