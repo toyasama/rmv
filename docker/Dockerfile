@@ -70,4 +70,3 @@ USER root
 RUN chmod +x /entrypoint.sh
 
 USER $USERNAME
-ENTRYPOINT ["/entrypoint.sh"]

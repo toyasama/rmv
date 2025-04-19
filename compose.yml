@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  ros2_app:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    image: rmv_app:latest
+    container_name: rmv_app_container
+    volumes:
+      - .:/home/devuser/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix  
+    devices:
+      - /dev/dri:/dev/dri  
+    environment:
+      - DISPLAY=${DISPLAY}
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - QT_X11_NO_MITSHM=1
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - CYCLONEDDS_URI=file:///home/devuser/workspace/cyclonedds.xml
+    entrypoint: [ "/entrypoint.sh", "ros2", "run", "rmv_chore", "rmv_chore" ]
+    stdin_open: true
+    tty: true
+    network_mode: "host"
+    privileged: true
+
+  # ros2_simulation:
+  #   build:
+  #     context: .
+  #     dockerfile: ./docker/Dockerfile
+  #   image: rmv_app:latest
+  #   container_name: rmv_simulation_container
+  #   volumes:
+  #     - .:/home/devuser/workspace
+  #   environment:
+  #     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+  #     - CYCLONEDDS_URI=file:///home/devuser/workspace/cyclonedds.xml
+  #   entrypoint: [ "/entrypoint.sh", "ros2", "launch", simulation, simulation_launch.py ]
+  #   stdin_open: true
+  #   tty: true
+  #   network_mode: "host"
