@@ -5,6 +5,12 @@ from tf2_msgs.msg import TFMessage
 from threading import Thread, Lock
 from time import sleep
 from ..tf_management.graph import TransformGraph
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy
+
+qos_profile_transient = QoSProfile(
+    depth=10,
+    durability=QoSDurabilityPolicy.TRANSIENT_LOCAL
+)
 
 class TFManager():
     def __init__(self, node: Node, transform_graph: TransformGraph) -> None:
@@ -18,7 +24,7 @@ class TFManager():
         
         
         self.node.create_subscription(TFMessage, '/tf', self.tfCallback, 10)
-        self.node.create_subscription(TFMessage, '/tf_static', self.tfStaticCallback, 10)
+        self.node.create_subscription(TFMessage, '/tf_static', self.tfStaticCallback, qos_profile_transient)
 
         self.node.get_logger().info("TFManager initialized successfully.")
 
